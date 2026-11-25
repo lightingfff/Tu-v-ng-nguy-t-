@@ -4,9 +4,9 @@ config_version=5
 [application]
 
 config/name="Tinh Vực · Vọng Nguyệt"
-config/version="0.2.0"
+config/version="0.3.0"
 config/icon="res://assets/icon.png"
-run/main_scene="res://scenes/song_nguyet.tscn"
+run/main_scene="res://world/song_nguyet_3d.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [display]
@@ -24,8 +24,10 @@ window/handheld/orientation=0
 pointing/emulate_mouse_from_touch=true
 
 [rendering]
-limits/opengl/max_renderable_lights=4
-limits/opengl/max_lights_per_object=2
+limits/opengl/max_renderable_lights=24
+limits/opengl/max_lights_per_object=4
+limits/opengl/max_renderable_lights.mobile=4
+limits/opengl/max_lights_per_object.mobile=2
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"

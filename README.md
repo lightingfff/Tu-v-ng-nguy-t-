@@ -1,29 +1,30 @@
 # Tinh Vực · Vọng Nguyệt
 
-**Chương I · Bờ Sông Nguyệt** là bản chơi thử của dự án RPG phiêu lưu 2.5D. Từ quán trà dưới tán cây, bạn đi về phía đông qua cầu đá và đem ba mảnh nguyệt thạch tới ngôi miếu treo chuông trăng. Camera đi cùng nhân vật trên bản đồ ngang 2560 × 853.
+**Bờ Sông Nguyệt 0.3** là chương phiêu lưu HD-2D trong Godot. Lữ khách dùng sprite anime 2D và bước qua địa hình 3D ở góc máy 3/4. Từ Xóm Bến Sương, bạn có thể rẽ xuống Bến Lau, sang sông bằng Cầu Gió, tìm lên Đồi Thông và đi qua cổng Rừng Lồng Đèn để tới Miếu Trăng Nổi.
 
-![Lữ khách chạy qua cầu đá tới miếu trăng trong bản Godot](docs/song-nguyet.webp)
+![Lữ khách bước trên Cầu Gió có lan can, bóng đổ và mặt nước 3D bên dưới](docs/song-nguyet-3d.webp)
 
-## Tải và chơi
+## Chơi thử
 
-| Nền tảng | Cách mở |
-| --- | --- |
-| Android | Tải [APK](https://raw.githubusercontent.com/lightingfff/Tu-v-ng-nguy-t-/4333545d41549cd131347d8a612278440156dc7b/Song-Nguyet-Android.apk), cài trên điện thoại Android và chơi ở chiều ngang. |
-| Windows 64-bit | Giải nén [bản Godot cho Windows](https://raw.githubusercontent.com/lightingfff/Tu-v-ng-nguy-t-/4333545d41549cd131347d8a612278440156dc7b/Song-Nguyet-Windows-x64.zip), giữ tệp PCK cạnh `Song-Nguyet.exe` và mở EXE. |
-| Trình duyệt | Tải [bản Web một tệp](https://raw.githubusercontent.com/lightingfff/Tu-v-ng-nguy-t-/4333545d41549cd131347d8a612278440156dc7b/Song-Nguyet-Web.zip), giải nén rồi mở tệp HTML bằng trình duyệt trên máy tính. Tất cả hình ảnh và mã chạy đều nằm trong tệp. |
+Tải APK cho Android hoặc bản Godot đóng gói cho Windows 64-bit. Trên Windows, giải nén và giữ tệp PCK cạnh tệp EXE. [Bản 0.3 và video gameplay](https://github.com/lightingfff/Tu-v-ng-nguy-t-/releases/tag/v0.3.0)
 
-Bấm **A/D**, dùng phím mũi tên trái phải hoặc chạm vào đường để di chuyển. Đến gần người ở quán trà rồi bấm **E** hoặc nút tương tác để nhận nhiệm vụ. Các bản tải về chơi một người, tiến độ được giữ trong lần chơi hiện tại.
+- Dùng **WASD**, phím mũi tên hoặc bấm/chạm vào mặt đất để đi. **C** đổi giữa hai cỡ khung.
+- Bấm **E** hoặc nút tương tác khi ở gần người giữ đền. Tìm ba mảnh nguyệt thạch ở **Bến Lau**, **Đồi Thông** và **Rừng Lồng Đèn**, rồi quay đến miếu.
 
-## Đồ họa và chuyển động
+## Xem và chỉnh map trong Godot
 
-- Sáu khung hình chạy thể hiện các nhịp tiếp đất, co gối và đẩy chân. Bóng đổ dùng dáng nhân vật ở đúng khung hình đó. Khi đứng yên, lữ khách thở nhẹ.
-- Cụm lau tiền cảnh trượt nhanh hơn mặt cầu. Núi xa dịch chuyển chậm hơn khi camera bám theo người chơi. Các lớp lau có trục xoay ở gốc để ngọn cây nghiêng theo gió.
-- Texture vật liệu mã hóa hướng gồ ghề trên bề mặt đá và mặt nạ nước. Shader dùng hai dữ liệu này để tái tạo ánh xiên trên đá, dải bóng mát dưới tán và vệt phản quang dao động trên sông. Godot dùng shader CanvasItem. Web dùng WebGL khi trình duyệt hỗ trợ và Canvas 2D cho đường vẽ dự phòng.
+Mở [godot/project.godot](godot/project.godot) bằng Godot 4.3 trở lên và bấm **F5**. [Cảnh chơi](godot/world/song_nguyet_3d.tscn) chứa camera, môi trường, nguồn nắng và nhân vật. [Cảnh thung lũng](godot/world/valley.tscn) chứa hai bờ, lòng sông và vị trí của từng model. Khu vực có thể đi rộng khoảng **110 × 63 m**.
 
-Phong cách nhân vật lấy cảm hứng từ kỹ thuật giữ hình khối dễ đọc khi tô bóng anime của Arc System Works. Hướng đèn ấm, bóng chân và cách ghép nhân vật với môi trường tham khảo chia sẻ của đội ngũ Octopath Traveler. Các tranh, nhân vật và sprite trong bản dựng được tạo riêng cho Sông Nguyệt. [Bài trình bày của Junya Motomura tại GDC](https://www.ggxrd.com/Motomura_Junya_GuiltyGearXrd.pdf) · [Phỏng vấn trên Unreal Engine](https://www.unrealengine.com/spotlights/octopath-traveler-s-hd-2d-art-style-and-story-make-for-a-jrpg-dream-come-true)
+- [Models](godot/world/models) có 13 tệp glTF riêng cho nhà trà, miếu, cầu, cổng, bến, thuyền, đèn, hai loài cây, đá, thùng hàng, hoa và hàng rào. Lưới địa hình và núi là hai tài nguyên mesh riêng.
+- [Textures](godot/world/textures) chứa texture theo bề mặt. Model có UV và các khe vật liệu cho gỗ, ngói, đá, đồng, tường đất và tán lá. Bạn có thể nhập từng glTF vào Blender hoặc đặt từng model trong Godot.
+- [Materials](godot/world/materials) gồm shader chuyển lớp giữa đất, cỏ và đá, shader dòng nước và shader cỏ lay. Nắng tạo bóng bằng hình khối 3D. Đèn lồng và ánh đèn gần miếu có nguồn sáng cục bộ. Sương phụ thuộc khoảng cách nhìn.
 
-## Chạy từ mã nguồn
+Cầu, nhà, gốc cây, cột cổng và hàng rào có va chạm. Mặt cầu đưa lữ khách lên và xuống theo độ dốc. Lan can và tán cây có thể che sprite khi nhân vật đi ra sau chúng.
 
-**Web nhiều người chơi.** Dùng Node.js 20 trở lên, chạy `npm ci` rồi `npm start`. Mở http://localhost:3000 trên máy chạy server. Các máy cùng mạng có thể dùng địa chỉ IP và cổng của máy đó. Máy chủ Node/WebSocket đồng bộ chuyển động cho tối đa 24 phiên và xử lý nhiệm vụ riêng của từng người chơi. Chạy `npm run build:offline` để tạo `dist/Song-Nguyet-Web.html`.
+## Tham khảo HD-2D
 
-**Godot.** Mở [godot/project.godot](godot/project.godot) bằng Godot 4.3 và bấm **F5**. Các cấu hình xuất Android, Windows và Linux nằm trong [export_presets.cfg](godot/export_presets.cfg). Để tự xuất bản, cài export templates trùng phiên bản Godot. Với Android, cấu hình SDK và khóa ký của bạn trong Godot.
+Ở gameplay Dragon Quest III HD-2D, bậc đá và lan can tạo cao độ, tán cây gần máy tạo che khuất, và ánh sáng giúp đọc lối đi. Octopath Traveler II dùng camera có bố cục định hướng và nguồn sáng tương phản để phân biệt khu vực khám phá. Bờ Sông Nguyệt áp dụng các nguyên lý này vào kiến trúc và hành trình riêng. [Gameplay Dragon Quest III](https://store.steampowered.com/app/2701660/DRAGON_QUEST_III_HD2D_Remake/) · [Gameplay Octopath Traveler II](https://store.steampowered.com/app/1971650/OCTOPATH_TRAVELER_II/) · [Phỏng vấn đội Octopath Traveler II](https://www.unrealengine.com/developer-interviews/octopath-traveler-ii-builds-a-bigger-bolder-world-in-its-stunning-hd-2d-style)
+
+## Web 0.2
+
+Bản Web dùng bản đồ cuộn ngang 2D của phiên bản 0.2. Chạy `npm ci` và `npm start` bằng Node.js 20 trở lên để mở chế độ Web nhiều người chơi ở http://localhost:3000. Chạy `npm run build:offline` để tạo bản HTML một tệp. [Tải Web 0.2](https://github.com/lightingfff/Tu-v-ng-nguy-t-/releases/tag/v0.2.0)

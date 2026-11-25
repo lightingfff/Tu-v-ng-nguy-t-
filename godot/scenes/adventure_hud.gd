@@ -2,6 +2,7 @@ extends Control
 
 signal action_requested
 
+var location: Label
 var objective: Label
 var inventory: Label
 var notice: Label
@@ -24,7 +25,8 @@ func _ready() -> void:
 	brand.add_theme_constant_override("separation", 1)
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	brand.add_child(_label("TINH VỰC · VỌNG NGUYỆT", 15, Color("#ffe4b3")))
-	brand.add_child(_label("Bờ Sông Nguyệt", 32, Color("#fff0d8")))
+	location = _label("Xóm Bến Sương", 32, Color("#fff0d8"))
+	brand.add_child(location)
 
 	var quest := PanelContainer.new()
 	top.add_child(quest)
@@ -39,7 +41,7 @@ func _ready() -> void:
 	inventory = _label("", 15, Color("#c9edea"))
 	quest_content.add_child(inventory)
 
-	hint = _label("A/D · ←/→  hoặc chạm để đi     ·     E  tương tác", 16, Color("#f6ead1"))
+	hint = _label("WASD · Chạm đường để đi     ·     E Tương tác     ·     C Đổi cỡ khung", 16, Color("#f6ead1"))
 	add_child(hint)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	hint.offset_top = -45.0

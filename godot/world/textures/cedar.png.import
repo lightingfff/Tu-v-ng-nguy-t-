@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwi5uysylbhx5"
-path="res://.godot/imported/river-material.png-b3ccc3e560ac1e186c505df3c263aac9.ctex"
+uid="uid://pxkv1e2gx74t"
+path="res://.godot/imported/cedar.png-87afcd7ddb5ec542a1ff91717e6c4a05.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/river-material.png"
-dest_files=["res://.godot/imported/river-material.png-b3ccc3e560ac1e186c505df3c263aac9.ctex"]
+source_file="res://world/textures/cedar.png"
+dest_files=["res://.godot/imported/cedar.png-87afcd7ddb5ec542a1ff91717e6c4a05.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bg6guub73ypp0"
-path="res://.godot/imported/song-nguyet.webp-9cfcaa2bbcddac0efee8cfe0e0d28ea1.ctex"
+uid="uid://b8u56wdwe7dqa"
+path="res://.godot/imported/timber.png-e88b4986f75abf692b997daa2233bad9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/song-nguyet.webp"
-dest_files=["res://.godot/imported/song-nguyet.webp-9cfcaa2bbcddac0efee8cfe0e0d28ea1.ctex"]
+source_file="res://world/textures/timber.png"
+dest_files=["res://.godot/imported/timber.png-e88b4986f75abf692b997daa2233bad9.ctex"]
 
 [params]
 

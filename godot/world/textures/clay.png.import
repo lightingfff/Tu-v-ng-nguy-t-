@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dq3nsuw2yddrk"
-path="res://.godot/imported/lau.webp-a6418c90a26913f408fe42a0a9c7f3d1.ctex"
+uid="uid://cvjw2wxv4pr1n"
+path="res://.godot/imported/clay.png-b80f8656456a9cacf82e238be051c9f9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/lau.webp"
-dest_files=["res://.godot/imported/lau.webp-a6418c90a26913f408fe42a0a9c7f3d1.ctex"]
+source_file="res://world/textures/clay.png"
+dest_files=["res://.godot/imported/clay.png-b80f8656456a9cacf82e238be051c9f9.ctex"]
 
 [params]
 
