@@ -1,0 +1,97 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+  color: #e8e8f3;
+  background: #0b0f1b;
+  --gold: #f3d49b;
+  --muted: #a4b0cc;
+  --line: #383747;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(ellipse at 50% 8%, #20263e, transparent 65%), #0b0f1b;
+}
+.layout { width: min(100% - 40px, 1180px, calc((100vh - 132px) * 1.5)); margin: 0 auto; }
+.masthead { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 13px; }
+.brand-mark {
+  display: grid; place-items: center; width: 40px; height: 40px; flex: none;
+  border: 1px solid #786244; border-radius: 50%; color: var(--gold); font-size: 25px;
+  background: radial-gradient(circle, #523b37, #1e253b 67%);
+}
+h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; }
+h1 { font-size: clamp(18px, 3vw, 29px); color: #ffedd0; }
+h1 span { color: #a58462; }
+.brand p { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .18em; margin-top: 3px; }
+.presence {
+  flex: none; display: flex; align-items: center; gap: 8px;
+  padding: 7px 11px; border: 1px solid var(--line); border-radius: 20px;
+  background: #101524; color: #dce3f1; font-size: 11px;
+}
+.presence::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #d7a271; }
+.presence[data-state='online']::before { background: #89e5ba; box-shadow: 0 0 9px #89e5ba99; }
+.scene {
+  position: relative; aspect-ratio: 3 / 2; isolation: isolate;
+  border: 1px solid #5a5062; border-radius: 12px; overflow: hidden;
+  background: #172238 url('/assets/ha-nguyet.webp') center / 100% 100% no-repeat;
+  box-shadow: 0 22px 70px #0009;
+}
+.scene::after {
+  content: ''; pointer-events: none; position: absolute; z-index: 1; inset: 0;
+  box-shadow: inset 0 0 68px #0b102366;
+}
+#world { display: block; position: absolute; width: 100%; height: 100%; cursor: crosshair; touch-action: manipulation; }
+.location, .quest, .scene-actions { z-index: 2; position: absolute; }
+.location { top: 19px; left: 21px; pointer-events: none; text-shadow: 0 2px 8px #000, 0 1px 3px #000; }
+.location span { font-size: 10px; color: #ffdc9a; letter-spacing: .2em; font-weight: 700; }
+.location h2 { font-size: clamp(18px, 3vw, 33px); color: #fff0d7; }
+.quest {
+  top: 18px; right: 18px; width: min(225px, 48%); pointer-events: none;
+  padding: 11px 13px; border-radius: 7px; border: 1px solid #b095686b;
+  background: #0b1324eb; box-shadow: 0 4px 18px #080d19ae;
+}
+.quest-title { display: flex; align-items: center; gap: 7px; color: var(--gold); }
+.quest-title > span { font-size: 20px; line-height: 1; }
+.quest h3 { font-size: 17px; }
+.quest p { font-size: 12px; color: #e0e3ef; line-height: 1.4; margin-top: 5px; }
+.progress { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 5px; font-size: 11px; color: #b6e9eb; }
+.shards { font-size: 16px; color: #a7fcfb; white-space: nowrap; }
+.scene-actions { inset: auto 10px 14px; display: grid; justify-items: center; gap: 7px; pointer-events: none; }
+.notice, .interact {
+  background: #111828ef; color: #ffeccc; border: 1px solid #927c5f;
+  border-radius: 7px; padding: 7px 11px; font: inherit; font-size: 12px;
+}
+.interact { cursor: pointer; pointer-events: auto; font-weight: 600; }
+.interact:hover, .interact:focus-visible { background: #30314b; }
+kbd {
+  display: inline-block; margin-right: 3px; color: #f0dbbb;
+  border: 1px solid #6b6277; border-radius: 4px;
+  padding: 1px 5px; font-size: 11px; font-family: inherit; line-height: 1.3;
+}
+.footer {
+  display: flex; flex-wrap: wrap; gap: 8px 15px; min-height: 51px; align-items: center;
+  font-size: 11px; color: var(--muted);
+}
+#experience { margin-left: auto; color: var(--gold); }
+@media (max-width: 600px) {
+  .layout { width: calc(100% - 16px); }
+  .masthead { min-height: 62px; }
+  .scene { aspect-ratio: 1 / 1; background-size: auto 100%; }
+  #world { width: 150%; left: -25%; }
+  .brand { gap: 6px; }
+  .brand-mark { width: 24px; height: 24px; font-size: 15px; }
+  .brand p { font-size: 8px; letter-spacing: .08em; }
+  .presence { padding: 5px 7px; font-size: 9px; }
+  .location { top: 7px; left: 8px; }
+  .location span { font-size: 7px; }
+  .location h2 { font-size: 15px; }
+  .quest { top: 7px; right: 7px; padding: 5px 7px; }
+  .quest h3, .quest-title > span { font-size: 13px; }
+  .quest p { font-size: 10px; }
+  .scene-actions { bottom: 5px; }
+  .notice, .interact { padding: 4px 6px; font-size: 10px; }
+}
