@@ -8,9 +8,9 @@
 
 | Nền tảng | Cách mở |
 | --- | --- |
-| Android | Tải [APK](https://github.com/lightingfff/Tu-v-ng-nguy-t-/releases/download/v0.2.0/Song-Nguyet-Android.apk), cài trên điện thoại Android và chơi ở chiều ngang. |
-| Windows 64-bit | Giải nén [bản Godot cho Windows](https://github.com/lightingfff/Tu-v-ng-nguy-t-/releases/download/v0.2.0/Song-Nguyet-Windows-x64.zip), giữ tệp PCK cạnh `Song-Nguyet.exe` và mở EXE. |
-| Trình duyệt | Tải [bản Web một tệp](https://github.com/lightingfff/Tu-v-ng-nguy-t-/releases/download/v0.2.0/Song-Nguyet-Web.html) rồi mở tệp HTML bằng trình duyệt trên máy tính. Tất cả hình ảnh và mã chạy đều nằm trong tệp. |
+| Android | Tải [APK](https://raw.githubusercontent.com/lightingfff/Tu-v-ng-nguy-t-/4333545d41549cd131347d8a612278440156dc7b/Song-Nguyet-Android.apk), cài trên điện thoại Android và chơi ở chiều ngang. |
+| Windows 64-bit | Giải nén [bản Godot cho Windows](https://raw.githubusercontent.com/lightingfff/Tu-v-ng-nguy-t-/4333545d41549cd131347d8a612278440156dc7b/Song-Nguyet-Windows-x64.zip), giữ tệp PCK cạnh `Song-Nguyet.exe` và mở EXE. |
+| Trình duyệt | Tải [bản Web một tệp](https://raw.githubusercontent.com/lightingfff/Tu-v-ng-nguy-t-/4333545d41549cd131347d8a612278440156dc7b/Song-Nguyet-Web.zip), giải nén rồi mở tệp HTML bằng trình duyệt trên máy tính. Tất cả hình ảnh và mã chạy đều nằm trong tệp. |
 
 Bấm **A/D**, dùng phím mũi tên trái phải hoặc chạm vào đường để di chuyển. Đến gần người ở quán trà rồi bấm **E** hoặc nút tương tác để nhận nhiệm vụ. Các bản tải về chơi một người, tiến độ được giữ trong lần chơi hiện tại.
 
