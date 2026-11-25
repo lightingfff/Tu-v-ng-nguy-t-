@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=20" },
-  "scripts": { "start": "node server.mjs", "check": "node --check server.mjs && node --check public/game.js && node --check public/world.js" },
+  "scripts": { "start": "node server.mjs", "check": "node --check server.mjs && node --check public/game.js && node --check public/world.js && node --check public/atmosphere.js && node --check public/sprite.js" },
   "dependencies": { "ws": "^8.18.3" }
 }

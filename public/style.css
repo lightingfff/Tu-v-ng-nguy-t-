@@ -27,6 +27,13 @@ h1, h2, h3 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; }
 h1 { font-size: clamp(18px, 3vw, 29px); color: #ffedd0; }
 h1 span { color: #a58462; }
 .brand p { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .18em; margin-top: 3px; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.view-button {
+  flex: none; appearance: none; color: #ffdfb3; background: #201c2c;
+  border: 1px solid #79614d; border-radius: 20px; padding: 7px 11px;
+  font: 600 11px system-ui, sans-serif; cursor: pointer;
+}
+.view-button:hover, .view-button:focus-visible { background: #3c2d44; }
 .presence {
   flex: none; display: flex; align-items: center; gap: 8px;
   padding: 7px 11px; border: 1px solid var(--line); border-radius: 20px;
@@ -77,6 +84,8 @@ kbd {
   font-size: 11px; color: var(--muted);
 }
 #experience { margin-left: auto; color: var(--gold); }
+.is-viewing :is(.location, .quest, .scene-actions, .presence, .footer) { visibility: hidden; }
+.is-viewing #world { cursor: default; }
 @media (max-width: 600px) {
   .layout { width: calc(100% - 16px); }
   .masthead { min-height: 62px; }
@@ -85,7 +94,16 @@ kbd {
   .brand { gap: 6px; }
   .brand-mark { width: 24px; height: 24px; font-size: 15px; }
   .brand p { font-size: 8px; letter-spacing: .08em; }
-  .presence { padding: 5px 7px; font-size: 9px; }
+  .header-actions { gap: 4px; }
+  .presence, .view-button { padding: 5px 7px; font-size: 9px; }
+  .is-viewing {
+    min-height: 100svh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    align-items: center;
+  }
+  .is-viewing .scene { aspect-ratio: 1.12; }
+  .is-viewing #world { width: 133.929%; left: -16.9645%; }
   .location { top: 7px; left: 8px; }
   .location span { font-size: 7px; }
   .location h2 { font-size: 15px; }

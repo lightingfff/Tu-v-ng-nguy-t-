@@ -1,7 +1,14 @@
+import { createAtmosphere } from './atmosphere.js';
+import { actorSize, drawSprite } from './sprite.js';
 import { altar, canWalk, distance, fragments, guide, height, width } from './world.js';
 
 const canvas = document.querySelector('#world');
 const ctx = canvas.getContext('2d');
+const atmosphere = createAtmosphere();
+const layout = document.querySelector('.layout');
+const viewButton = document.querySelector('#view-scene');
+const scene = document.querySelector('.scene');
+const sceneHud = scene.querySelectorAll('.location, .quest, .scene-actions');
 const connection = document.querySelector('#connection');
 const objective = document.querySelector('#objective');
 const progress = document.querySelector('#progress');
@@ -14,6 +21,7 @@ const experience = document.querySelector('#experience');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const compact = matchMedia('(max-width: 600px)');
 const npcs = { x: guide.x, y: guide.y, name: 'Người giữ đền', color: 'amber', face: 1 };
+const portrait = { x: 1082, y: 665, color: 'tealMoon', face: -1 };
 const actors = new Map();
 const keys = new Set();
 const moveKeys = new Map([
@@ -27,38 +35,6 @@ const questText = {
   return: 'Mang nguyệt thạch đến Ấn Nguyệt trên bậc đền.',
   done: 'Ánh sáng đã trở lại làng Hạ Nguyệt.',
 };
-const lanterns = [[694, 316], [847, 316], [600, 456], [941, 456], [1118, 505], [301, 461], [132, 500]];
-const palette = {
-  teal: ['#1d5265', '#4fa2a9', '#9be2e3'],
-  violet: ['#482e68', '#8464bb', '#d5bfff'],
-  rose: ['#582e4d', '#ad5d87', '#f8afc9'],
-  amber: ['#69442d', '#ac7946', '#ffd99a'],
-};
-const sprite = [
-  '      hhhh      ',
-  '    hhkkkkh     ',
-  '   hkkkllkkh    ',
-  '   hkllkkkkhh   ',
-  '   hkkffffkhh   ',
-  '   hkkfefekkh   ',
-  '    hkfffkh     ',
-  '   ddttffddd    ',
-  '  dttttatttqd   ',
-  ' dttttaattttqd  ',
-  ' dtttaaattttqd  ',
-  ' dtqtaaastqqd   ',
-  '  fqdaagaaaf    ',
-  '   dqaaaatqdd   ',
-  '  ddqaatttqqd   ',
-  '  dqttttqqqqd   ',
-  '  dqtdttqdd     ',
-  '   ddddddd      ',
-];
-const points = Array.from({ length: 34 }, (_, i) => ({
-  x: 115 + ((i * 137.31) % 1290),
-  y: 206 + ((i * 73.17) % 676),
-  phase: i * 2.4,
-}));
 let socket;
 let self;
 let stage = 'start';
@@ -66,6 +42,26 @@ let collected = [];
 let noticeTimer;
 let retryDelay = 600;
 let clickMarker;
+let viewOnly = false;
+
+function setView(active) {
+  viewOnly = active;
+  layout.classList.toggle('is-viewing', active);
+  viewButton.textContent = active ? 'Chơi thử' : 'Xem cảnh';
+  scene.dataset.mode = active ? 'scene' : 'game';
+  canvas.setAttribute('aria-label', active
+    ? 'Một lữ khách đứng trong làng Hạ Nguyệt, cạnh hồ và dãy đền rực ánh đèn.'
+    : 'Quảng trường làng Hạ Nguyệt. Dùng WASD hoặc phím mũi tên để đi, E để tương tác.');
+  sceneHud.forEach((element) => { element.inert = active; });
+  if (active && keys.size) {
+    keys.clear();
+    keyboardMove();
+  }
+  if (!active && !socket) connect();
+}
+
+viewButton.addEventListener('click', () => setView(!viewOnly));
+setView(new URLSearchParams(location.search).get('view') === 'scene');
 
 function send(payload) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload));
@@ -144,6 +140,12 @@ function keyboardMove() {
 window.addEventListener('keydown', (event) => {
   if (event.altKey || event.ctrlKey || event.metaKey) return;
   const key = event.key.toLowerCase();
+  if (key === 'escape' && viewOnly) {
+    setView(false);
+    viewButton.focus();
+    return;
+  }
+  if (viewOnly) return;
   if (moveKeys.has(key)) {
     event.preventDefault();
     keys.add(key);
@@ -162,7 +164,7 @@ setInterval(() => { if (keys.size) keyboardMove(); }, 120);
 interactButton.addEventListener('click', () => send({ type: 'interact' }));
 
 canvas.addEventListener('pointerdown', (event) => {
-  if (event.button !== 0 || !self) return;
+  if (event.button !== 0 || !self || viewOnly) return;
   const bounds = canvas.getBoundingClientRect();
   const x = (event.clientX - bounds.left) * width / bounds.width;
   const y = (event.clientY - bounds.top) * height / bounds.height;
@@ -207,64 +209,30 @@ function label(text, x, y, color) {
   ctx.fillText(text, x, y);
 }
 
-function drawActor(actor, time) {
+function drawActor(actor, time, isPortrait = false) {
   const x = Math.round(actor.renderX ?? actor.x);
   const y = Math.round(actor.renderY ?? actor.y);
-  const size = Math.max(3, Math.min(4, 3 + (y - 620) / 300));
-  const stride = actor.moving ? Math.floor(time / 130) % 4 : 0;
-  const bob = stride % 2;
-  const [main, medium, light] = palette[actor.color];
-  const ink = {
-    h: '#111726', k: '#2a3045', l: '#515b71', f: '#e4ae8c', e: '#272237',
-    d: '#12182c', t: main, a: medium, q: '#2e2945', s: light, g: '#e9cc8c',
-  };
-
-  ctx.beginPath();
-  ctx.ellipse(x + 5, y + 1, 17, 6, -0.12, 0, Math.PI * 2);
-  ctx.fillStyle = '#05081899';
-  ctx.fill();
-  ctx.save();
-  ctx.translate(x, y - bob * size);
-  ctx.scale(actor.face, 1);
-  ctx.fillStyle = '#151724';
-  ctx.fillRect(-size * 3, -size * 3 - (stride === 1 ? 2 : 0), size * 2, size * 3);
-  ctx.fillRect(size, -size * 3 - (stride === 3 ? 2 : 0), size * 2, size * 3);
-  ctx.fillStyle = '#4d4c67';
-  ctx.fillRect(-size * 3, -size, size * 2, size);
-  ctx.fillRect(size, -size, size * 2, size);
-  sprite.forEach((row, iy) => {
-    for (let ix = 0; ix < row.length; ix++) {
-      if (row[ix] === ' ') continue;
-      ctx.fillStyle = ink[row[ix]];
-      ctx.fillRect((ix - 8) * size, (iy - sprite.length - 2) * size, size, size);
-    }
-  });
-  ctx.restore();
+  const size = actorSize(y, isPortrait);
+  drawSprite(ctx, actor, x, y, size, time);
+  if (isPortrait) return;
   if (actor.id === self) {
-    diamond(x, y - size * 24, 5, '#a3f4fa', true);
+    diamond(x, y - size * 23, 5, '#a3f4fa', true);
     label('Bạn', x, y + 19, '#cafffb');
   } else label(actor.name, x, y + 19, actor === npcs ? '#ffe2a4' : '#f1e9ff');
 }
 
 function render(now) {
-  const time = reducedMotion.matches ? 0 : now;
+  const animate = !reducedMotion.matches;
+  const time = animate ? now / 1000 : 0;
   ctx.clearRect(0, 0, width, height);
-  ctx.save();
-  ctx.globalCompositeOperation = 'screen';
-  lanterns.forEach(([x, y], i) => {
-    ctx.globalAlpha = 0.48 + Math.sin(time / 440 + i * 1.6) * 0.13;
-    glow(x, y, 43, '#ff9b3b7a');
-  });
-  ctx.restore();
+  atmosphere.background(ctx, time, animate);
 
-  for (const p of points) {
-    const x = p.x + Math.sin(time / 2600 + p.phase) * 19;
-    const y = p.y + Math.cos(time / 2400 + p.phase) * 10;
-    ctx.globalAlpha = 0.36 + Math.sin(time / 980 + p.phase) * 0.29;
-    ctx.fillStyle = '#ffdcac';
-    ctx.fillRect(x, y, 2, 2);
+  if (viewOnly) {
+    drawActor(portrait, time, true);
+    atmosphere.foreground(ctx, time, true);
+    requestAnimationFrame(render);
+    return;
   }
-  ctx.globalAlpha = 1;
 
   if (clickMarker && now < clickMarker.until) {
     const fade = (clickMarker.until - now) / 670;
@@ -278,11 +246,11 @@ function render(now) {
   }
 
   if (stage === 'start') {
-    diamond(guide.x, guide.y - 88, 8, '#ffdd9e', false);
+    diamond(guide.x, guide.y - 85, 8, '#ffdd9e', false);
   } else if (stage === 'collect') {
     fragments.forEach(({ x, y }, index) => {
       if (collected.includes(index)) return;
-      const hover = Math.sin(time / 430 + index) * 5;
+      const hover = Math.sin(time / 0.43 + index) * 5;
       glow(x, y - 14 + hover, 32, '#5df7e2a0');
       diamond(x, y - 14 + hover, 11, '#bdfffa', true);
       diamond(x + 1, y - 15 + hover, 7, '#449fc0', true);
@@ -299,8 +267,8 @@ function render(now) {
   }
   const ordered = [npcs, ...actors.values()].sort((a, b) => (a.renderY ?? a.y) - (b.renderY ?? b.y));
   for (const actor of ordered) drawActor(actor, time);
+  atmosphere.foreground(ctx, time, false);
   requestAnimationFrame(render);
 }
 
-connect();
 requestAnimationFrame(render);

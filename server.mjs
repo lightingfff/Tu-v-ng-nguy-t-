@@ -9,7 +9,11 @@ const assets = new Map([
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/game.js', ['game.js', 'text/javascript; charset=utf-8']],
   ['/world.js', ['world.js', 'text/javascript; charset=utf-8']],
+  ['/atmosphere.js', ['atmosphere.js', 'text/javascript; charset=utf-8']],
+  ['/sprite.js', ['sprite.js', 'text/javascript; charset=utf-8']],
   ['/assets/ha-nguyet.webp', ['assets/ha-nguyet.webp', 'image/webp']],
+  ['/assets/ha-nguyet-depth.webp', ['assets/ha-nguyet-depth.webp', 'image/webp']],
+  ['/assets/ha-nguyet-water.webp', ['assets/ha-nguyet-water.webp', 'image/webp']],
 ]);
 const server = createServer(async (request, response) => {
   const asset = assets.get(request.url?.split('?')[0]);
