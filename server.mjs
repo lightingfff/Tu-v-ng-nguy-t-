@@ -2,18 +2,23 @@ import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { WebSocket, WebSocketServer } from 'ws';
-import { altar, canWalk, distance, fragments, guide } from './public/world.js';
+import { advancePlayer, applyInput, interactWithWorld, makePlayer } from './public/world.js';
 
 const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/game.js', ['game.js', 'text/javascript; charset=utf-8']],
+  ['/assets.js', ['assets.js', 'text/javascript; charset=utf-8']],
   ['/world.js', ['world.js', 'text/javascript; charset=utf-8']],
   ['/atmosphere.js', ['atmosphere.js', 'text/javascript; charset=utf-8']],
+  ['/terrain.js', ['terrain.js', 'text/javascript; charset=utf-8']],
+  ['/assets/lu-khach-run.webp', ['assets/lu-khach-run.webp', 'image/webp']],
+  ['/assets/lau.webp', ['assets/lau.webp', 'image/webp']],
+  ['/assets/river-material.png', ['assets/river-material.png', 'image/png']],
   ['/sprite.js', ['sprite.js', 'text/javascript; charset=utf-8']],
-  ['/assets/ha-nguyet.webp', ['assets/ha-nguyet.webp', 'image/webp']],
-  ['/assets/ha-nguyet-depth.webp', ['assets/ha-nguyet-depth.webp', 'image/webp']],
-  ['/assets/ha-nguyet-water.webp', ['assets/ha-nguyet-water.webp', 'image/webp']],
+  ['/assets/song-nguyet.webp', ['assets/song-nguyet.webp', 'image/webp']],
+  ['/assets/lu-khach.webp', ['assets/lu-khach.webp', 'image/webp']],
 ]);
 const server = createServer(async (request, response) => {
   const asset = assets.get(request.url?.split('?')[0]);
@@ -34,10 +39,7 @@ const server = createServer(async (request, response) => {
 
 const sockets = new WebSocketServer({ noServer: true, maxPayload: 1024 });
 const players = new Map();
-const colors = ['teal', 'violet', 'rose', 'amber'];
 const maxPlayers = 24;
-const spawnColumns = [715, 820, 610, 925];
-const speed = 200;
 const tickMs = 50;
 
 server.on('upgrade', (request, socket, head) => {
@@ -54,26 +56,14 @@ function send(ws, payload) {
   }
 }
 
-function interact(ws, player) {
-  if (player.stage === 'start' && distance(player, guide) < 85) {
-    player.stage = 'collect';
-    send(ws, { type: 'notice', text: 'Người giữ đền nhờ bạn tìm ba mảnh nguyệt thạch trong làng.' });
-  } else if (player.stage === 'return' && distance(player, altar) < 85) {
-    player.stage = 'done';
-    send(ws, { type: 'notice', text: 'Ấn Nguyệt đã sáng trở lại. Bạn nhận được 100 kinh nghiệm!' });
-  }
+function notify(ws, message) {
+  if (message) send(ws, { type: 'notice', text: message });
 }
 
 sockets.on('connection', (ws) => {
   const idx = [...Array(maxPlayers).keys()].find((n) =>
     ![...players.values()].some((player) => player.idx === n));
-  const player = {
-    idx, id: randomUUID(), x: spawnColumns[idx % spawnColumns.length],
-    y: 784 + Math.floor(idx / spawnColumns.length) * 28,
-    name: 'Lữ khách ' + String(idx + 1).padStart(2, '0'),
-    color: colors[idx % colors.length], stage: 'start', collected: [],
-    dx: 0, dy: 0, face: 1, moving: false, target: null, alive: true, lastInputAt: 0,
-  };
+  const player = { ...makePlayer(idx, randomUUID()), idx, alive: true };
   players.set(ws, player);
   send(ws, { type: 'welcome', id: player.id });
   ws.on('error', () => ws.terminate());
@@ -84,53 +74,15 @@ sockets.on('connection', (ws) => {
     try { message = JSON.parse(raw); } catch { return; }
     if (!message || typeof message !== 'object') return;
 
-    if (message.type === 'move' && Number.isFinite(message.dx) && Number.isFinite(message.dy)) {
-      player.lastInputAt = Date.now();
-      player.dx = Math.max(-1, Math.min(1, message.dx));
-      player.dy = Math.max(-1, Math.min(1, message.dy));
-      player.target = null;
-    } else if (message.type === 'target' && Number.isFinite(message.x) &&
-      Number.isFinite(message.y) && canWalk(message.x, message.y)) {
-      player.target = { x: message.x, y: message.y };
-    } else if (message.type === 'interact') {
-      interact(ws, player);
-    }
+    if (message.type === 'interact') notify(ws, interactWithWorld(player));
+    else applyInput(player, message, Date.now());
   });
 });
 
 const simulation = setInterval(() => {
   const now = Date.now();
   for (const [ws, player] of players) {
-    let dx = 0;
-    let dy = 0;
-    if (player.target) {
-      dx = player.target.x - player.x;
-      dy = player.target.y - player.y;
-    } else if (now - player.lastInputAt < 420) {
-      dx = player.dx;
-      dy = player.dy;
-    }
-    const step = speed * tickMs / 1000;
-    const divisor = player.target ? Math.max(step, Math.hypot(dx, dy)) : Math.max(1, Math.hypot(dx, dy));
-    const x = player.x + dx / divisor * step;
-    const y = player.y + dy / divisor * step;
-    const oldX = player.x;
-    const oldY = player.y;
-    if (canWalk(x, player.y)) player.x = x;
-    if (canWalk(player.x, y)) player.y = y;
-    player.moving = oldX !== player.x || oldY !== player.y;
-    if (Math.abs(dx) > 0.01) player.face = Math.sign(dx);
-    if (player.target && (!player.moving || distance(player, player.target) < 1)) player.target = null;
-
-    if (player.stage === 'collect') {
-      fragments.forEach((fragment, index) => {
-        if (distance(player, fragment) < 37 && !player.collected.includes(index)) {
-          player.collected.push(index);
-          send(ws, { type: 'notice', text: 'Đã nhặt nguyệt thạch · ' + player.collected.length + '/' + fragments.length });
-        }
-      });
-      if (player.collected.length === fragments.length) player.stage = 'return';
-    }
+    notify(ws, advancePlayer(player, tickMs / 1000, now));
   }
 
   const actors = [...players.values()].map(({ id, x, y, name, color, face, moving }) =>

@@ -4,25 +4,30 @@ config_version=5
 [application]
 
 config/name="Tinh Vực · Vọng Nguyệt"
-run/main_scene="res://scenes/ha_nguyet.tscn"
+config/version="0.2.0"
+config/icon="res://assets/icon.png"
+run/main_scene="res://scenes/song_nguyet.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [display]
 
-window/size/viewport_width=1152
-window/size/viewport_height=768
-window/size/window_width_override=1152
-window/size/window_height_override=768
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=0
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
 
 [rendering]
+limits/opengl/max_renderable_lights=4
+limits/opengl/max_lights_per_object=2
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-environment/defaults/default_clear_color=Color(0.041, 0.054, 0.091, 1)
-
-[importer_defaults]
-
-texture={
-"mipmaps/generate": true
-}
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.052, 0.073, 0.103, 1)

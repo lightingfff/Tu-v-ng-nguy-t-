@@ -1,340 +1,200 @@
-import { width, height } from './world.js';
+import { createTerrain } from "./terrain.js";
+import { panoramaUrl, reedsUrl, materialUrl } from './assets.js';
+import { cameraTop, height, viewportHeight, viewportWidth, width } from './world.js';
 
-const water = { x: 1090, y: 292, w: 362, h: 276 };
-const shore = new Path2D('M 1100 357 L 1124 321 L 1394 302 L 1439 316 L 1368 407 L 1352 470 L 1319 552 L 1155 504 L 1098 463 Z');
-const foliage = [
-  { x: 0, y: 0, w: 328, h: 240, pivot: 207, sway: 5, phase: 1, petals: true },
-  { x: 290, y: 271, w: 193, h: 203, pivot: 149, sway: 5, phase: 2 },
-  { x: 1220, y: 680, w: 316, h: 344, pivot: 319, sway: 5, phase: 0 },
+const banks = new Path2D([
+  'M 290 782 L 550 748 L 790 755 L 979 724 L 1118 709 L 1182 652',
+  'Q 1194 582 1261 551 Q 1300 536 1349 552 Q 1406 560 1436 628',
+  'L 1457 710 L 1538 743 L 1772 751 L 2006 725 L 2160 741 L 2315 724',
+  'L 2300 786 L 2220 803 L 1980 818 L 1730 824 L 1133 835 L 554 840 Z',
+].join(' '));
+const reedZones = [
+  { x: 753, y: 422, w: 203, h: 172, phase: 0 },
+  { x: 1705, y: 406, w: 214, h: 184, phase: 2 },
+  { x: 4, y: 667, w: 475, h: 186, phase: 3 },
+  { x: 2067, y: 670, w: 475, h: 183, phase: 1 },
 ];
-const lanterns = [
-  { x: 693, y: 328, ground: 472, radius: 84 },
-  { x: 845, y: 328, ground: 474, radius: 84 },
-  { x: 604, y: 455, ground: 514, radius: 54 },
-  { x: 940, y: 455, ground: 514, radius: 54 },
-  { x: 301, y: 462, ground: 623, radius: 105 },
-  { x: 136, y: 498, ground: 643, radius: 104 },
-  { x: 1393, y: 491, ground: 647, radius: 98 },
-  { x: 1118, y: 505, ground: 649, radius: 112 },
-];
-const bursts = Array.from({ length: 31 }, (_, i) => ({
-  x: 20 + ((i * 83) % 300),
-  phase: i * 2.39996,
-  duration: 12 + (i % 8),
-  speed: 15 + ((i * 13) % 22),
-  size: 2 + ((i * 11) % 7) * 0.60,
-  tone: ['#f6b0d3', '#f1d1dc', '#ae79a2', '#fbb5bc'][i % 4],
-}));
-const fireflies = Array.from({ length: 22 }, (_, i) => ({
-  x: i % 2 ? 160 + ((i * 53) % 370) : 998 + ((i * 89) % 375),
-  y: 565 + ((i * 61) % 258),
-  phase: i * 2.4,
+const petals = Array.from({ length: 35 }, (_, i) => ({
+  x: i < 17 ? (i * 61) % 625 : 2050 + (i * 83) % 500,
+  phase: i * 2.399,
+  duration: 9 + i % 9,
+  tone: i < 17 ? ['#ffda8b', '#fff1b2', '#eab472'][i % 3] : ['#f77b46', '#f6ae6e', '#ffd87d'][i % 3],
+  size: 2.1 + ((i * 17) % 7) * 0.36,
 }));
 
-function buffer(w, h) {
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  return canvas.getContext('2d');
+function createBuffer(w, h) {
+  const layer = document.createElement('canvas');
+  layer.width = w;
+  layer.height = h;
+  return layer.getContext('2d');
 }
 
-function image(src) {
-  const asset = new Image();
-  asset.src = src;
-  return asset.decode().then(() => asset);
-}
-
-function smooth(a, b, value) {
-  const t = Math.min(1, Math.max(0, (value - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-}
-
-function depthComposite(base, depth) {
-  const out = buffer(width, height);
-  out.drawImage(base, 0, 0, width, height);
-  if (!depth) return out.canvas;
-
-  const source = buffer(depth.width, depth.height);
-  source.drawImage(depth, 0, 0);
-  const pixels = source.getImageData(0, 0, depth.width, depth.height);
-  const mask = buffer(depth.width, depth.height);
-  const blurred = buffer(width, height);
-  for (const [distanceBlur, opacity] of [
-    [3.2, (value) => smooth(165, 235, value) * 0.84],
-    [4.6, (value) => (1 - smooth(26, 82, value)) * 0.65],
-  ]) {
-    for (let i = 0; i < pixels.data.length; i += 4) {
-      pixels.data[i + 3] = Math.round(255 * opacity(pixels.data[i]));
+function createReeds(image, zone) {
+  const feather = createBuffer(zone.w, zone.h);
+  feather.drawImage(image, zone.x, zone.y, zone.w, zone.h, 0, 0, zone.w, zone.h);
+  const pixels = feather.getImageData(0, 0, zone.w, zone.h);
+  for (let y = 0; y < zone.h; y++) {
+    for (let x = 0; x < zone.w; x++) {
+      const index = (y * zone.w + x) * 4;
+      const red = pixels.data[index];
+      const green = pixels.data[index + 1];
+      const blue = pixels.data[index + 2];
+      const plant = Math.min((red + green) * 0.5 - blue, green - blue + 18);
+      const featherEdge = Math.min(1, x / 22, (zone.w - 1 - x) / 22, y / 17, (zone.h - 1 - y) / 17);
+      pixels.data[index + 3] = Math.round(240 * featherEdge * Math.max(0, Math.min(1, (plant - 17) / 30)));
     }
-    mask.putImageData(pixels, 0, 0);
-    blurred.clearRect(0, 0, width, height);
-    blurred.save();
-    blurred.filter = 'blur(' + distanceBlur + 'px)';
-    blurred.drawImage(base, 0, 0, width, height);
-    blurred.filter = 'none';
-    blurred.globalCompositeOperation = 'destination-in';
-    blurred.drawImage(mask.canvas, 0, 0, width, height);
-    blurred.restore();
-    out.drawImage(blurred.canvas, 0, 0);
   }
+  feather.putImageData(pixels, 0, 0);
+  return { ...zone, mask: feather.canvas, buffer: createBuffer(zone.w, zone.h) };
+}
+
+function focusBackground(image) {
+  const out = createBuffer(width, height);
+  out.drawImage(image, 0, 0);
+  const defocus = createBuffer(width, height);
+  defocus.filter = 'blur(2.8px)';
+  defocus.drawImage(image, 0, 0);
+  defocus.filter = 'none';
+
+  const mask = createBuffer(width, height);
+  ellipseGlow(mask, 1450, 192, 1250, 251, '#ffffffb0');
+  ellipseGlow(mask, 183, 840, 486, 176, '#ffffff70');
+  ellipseGlow(mask, 2405, 852, 490, 178, '#ffffff70');
+  defocus.globalCompositeOperation = 'destination-in';
+  defocus.drawImage(mask.canvas, 0, 0);
+  out.drawImage(defocus.canvas, 0, 0);
   return out.canvas;
 }
 
-function reflectionMask(depth) {
-  if (!depth) return null;
-  const source = buffer(water.w, water.h);
-  source.drawImage(depth, water.x * depth.width / width, water.y * depth.height / height,
-    water.w * depth.width / width, water.h * depth.height / height, 0, 0, water.w, water.h);
-  const pixels = source.getImageData(0, 0, water.w, water.h);
-  for (let i = 0; i < pixels.data.length; i += 4) pixels.data[i + 3] = pixels.data[i];
-  source.putImageData(pixels, 0, 0);
-  return source.canvas;
-}
-
-function foliagePatch(entry, base) {
-  const colors = buffer(entry.w, entry.h);
-  colors.drawImage(base, entry.x, entry.y, entry.w, entry.h, 0, 0, entry.w, entry.h);
-  const sample = colors.getImageData(0, 0, entry.w, entry.h).data;
-  const mask = buffer(entry.w, entry.h);
-  mask.save();
-  mask.translate(entry.w * 0.47, entry.h * 0.48);
-  mask.scale(entry.w * 0.61, entry.h * 0.60);
-  const fade = mask.createRadialGradient(0, 0, 0, 0, 0, 1);
-  fade.addColorStop(0, '#fff');
-  fade.addColorStop(0.63, '#fff');
-  fade.addColorStop(1, 'transparent');
-  mask.fillStyle = fade;
-  mask.fillRect(-1, -1, 2, 2);
-  mask.restore();
-
-  // Limit motion to the painted flowers or leaves so hard roof edges stay still.
-  const alpha = mask.getImageData(0, 0, entry.w, entry.h);
-  for (let i = 0; i < sample.length; i += 4) {
-    const red = sample[i];
-    const green = sample[i + 1];
-    const blue = sample[i + 2];
-    const tint = entry.petals
-      ? Math.min(red - green, blue - green)
-      : Math.min(green - red * 0.92, green * 1.14 - blue);
-    alpha.data[i + 3] = Math.round(alpha.data[i + 3] * smooth(0, 12, tint));
-  }
-  mask.putImageData(alpha, 0, 0);
-  return { ...entry, patch: buffer(entry.w, entry.h), mask: mask.canvas };
-}
-
-function pool(color, middle = 'transparent') {
-  const canvas = buffer(128, 128);
-  const gradient = canvas.createRadialGradient(64, 64, 0, 64, 64, 64);
+function ellipseGlow(ctx, x, y, radiusX, radiusY, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, radiusY / radiusX);
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radiusX);
   gradient.addColorStop(0, color);
-  gradient.addColorStop(0.45, middle);
   gradient.addColorStop(1, 'transparent');
-  canvas.fillStyle = gradient;
-  canvas.fillRect(0, 0, 128, 128);
-  return canvas.canvas;
+  ctx.fillStyle = gradient;
+  ctx.fillRect(-radiusX, -radiusX, radiusX * 2, radiusX * 2);
+  ctx.restore();
 }
-
-function shaft() {
-  const ctx = buffer(132, 168);
-  const falloff = ctx.createLinearGradient(0, 0, 0, 168);
-  falloff.addColorStop(0, '#fcb66660');
-  falloff.addColorStop(0.48, '#f4a6532b');
-  falloff.addColorStop(1, '#e4944700');
-  ctx.fillStyle = falloff;
-  ctx.filter = 'blur(9px)';
-  ctx.beginPath();
-  ctx.moveTo(61, 5);
-  ctx.lineTo(71, 5);
-  ctx.lineTo(123, 162);
-  ctx.lineTo(9, 162);
-  ctx.fill();
-  return ctx.canvas;
-}
-
-const flame = pool('#ffbd6466', '#ff9c2124');
-const lamplight = pool('#ffc47a4d', '#e58c4c28');
-const mist = pool('#aac1e644', '#667fb827');
-const coolLight = pool('#bbcef537', '#8594e52a');
-const lightCone = shaft();
 
 export function createAtmosphere() {
   let frame;
-  let mask;
-  const ripples = buffer(water.w, water.h);
-  let patches = [];
-  let surfaceFrame = -1;
-  Promise.allSettled([
-    image('/assets/ha-nguyet.webp'),
-    image('/assets/ha-nguyet-depth.webp'),
-    image('/assets/ha-nguyet-water.webp'),
-  ]).then(([base, depth, waterDepth]) => {
-    if (base.status !== 'fulfilled') return;
-    frame = depthComposite(base.value, depth.value);
-    mask = reflectionMask(waterDepth.value);
-    patches = foliage.map((entry) => foliagePatch(entry, base.value));
-  });
+  let terrain;
+  const nearReeds = new Image();
+  const material = new Image();
+  nearReeds.src = reedsUrl;
+  material.src = materialUrl;
+  let reeds = [];
+  let reedTick = -1;
+  const art = new Image();
+  art.src = panoramaUrl;
+  art.decode().then(() => {
+    reeds = reedZones.map((zone) => createReeds(art, zone));
+    frame = focusBackground(art);
+    material.decode().then(() => { terrain = createTerrain(frame, material); }).catch(() => {});
+  }).catch(() => { /* Keep the CSS fallback when artwork cannot be loaded. */ });
 
-  function updateWater(time) {
-    const layer = ripples;
-    layer.clearRect(0, 0, water.w, water.h);
-    const band = 4;
-    for (let y = 0; y < water.h; y += band) {
-      const phase = y * 0.075 + time * 1.52;
-      const offset = Math.sin(phase) * 2.6 + Math.sin(y * 0.037 - time * 1.11) * 1.5;
-      layer.drawImage(frame, water.x - 6, water.y + y, water.w + 12, band,
-        offset - 6, y, water.w + 12, band);
-    }
-
-    // The narrow warm streak follows the house lights, while the open water catches cooler ripples.
-    layer.save();
-    layer.globalCompositeOperation = 'screen';
-    for (let i = 0; i < 60; i++) {
-      const y = 8 + ((i * 43) % 254);
-      const x = 9 + ((i * 127) % 341);
-      const phase = i * 2.4 + time * (0.8 + i % 4 * 0.08);
-      const shimmer = 0.10 + 0.10 * Math.sin(phase) ** 2;
-      const warm = Math.abs(x - 125) < 33 || Math.abs(x - 260) < 31;
-      layer.globalAlpha = shimmer;
-      layer.fillStyle = warm ? '#edb885' : '#6ac7df';
-      layer.fillRect(x + Math.sin(phase) * 4, y, 4 + (i % 6) * 3, y > 190 ? 1.2 : 0.7);
-    }
-    layer.restore();
-    if (mask) {
-      layer.globalCompositeOperation = 'destination-in';
-      layer.drawImage(mask, 0, 0);
-      layer.globalCompositeOperation = 'source-over';
-    }
-  }
-
-  function drawSurface(ctx, time) {
-    const tick = Math.floor(time * 30);
-    if (tick !== surfaceFrame) {
-      surfaceFrame = tick;
-      updateWater(time);
-      updateFoliage(time);
-    }
-
+  function drawWater(ctx, camera, time) {
     ctx.save();
-    if (!mask) ctx.clip(shore);
-    ctx.drawImage(ripples.canvas, water.x, water.y);
-    ctx.restore();
-    for (const { x, y, patch } of patches) ctx.drawImage(patch.canvas, x, y);
-  }
-
-  function updateFoliage(time) {
-    for (const { x, y, w, h, pivot, sway, phase, patch, mask: fade } of patches) {
-      patch.clearRect(0, 0, w, h);
-      const gust = Math.sin(time * 1.66 + phase) * 0.63 + Math.sin(time * 2.83 + phase * 2) * 0.37;
-      for (let band = 0; band < h; band += 8) {
-        const bend = Math.max(0, (pivot - band) / pivot);
-        const offset = sway * (gust + Math.sin(band / 41 + time * 1.9) * 0.36) * bend ** 1.7;
-        const bandHeight = Math.min(8, h - band);
-        patch.drawImage(frame, x, y + band, w, bandHeight, offset, band, w, bandHeight);
-      }
-      patch.globalCompositeOperation = 'destination-in';
-      patch.drawImage(fade, 0, 0);
-      patch.globalCompositeOperation = 'source-over';
+    ctx.clip(banks);
+    const left = Math.max(3, camera - 3);
+    const right = Math.min(width - 3, camera + viewportWidth + 3);
+    const band = 6;
+    const shine = 0.6 + Math.sin(time * 0.9) * 0.14;
+    for (let y = 541; y < cameraTop + viewportHeight; y += band) {
+      const ripple = Math.sin(y * 0.12 + time * 2.80) + Math.sin(y * 0.047 - time * 2.07) * 0.61;
+      ctx.drawImage(art, left, y, right - left, band, left + ripple * 1.7, y, right - left, band);
     }
+    ctx.globalCompositeOperation = 'screen';
+    for (let i = 0; i < 72; i++) {
+      const x = 258 + (i * 197) % 1990;
+      if (x + 42 < camera || x > camera + viewportWidth) continue;
+      const y = 573 + (i * 21) % 245;
+      const phase = time * (0.51 + i % 4 * 0.11) + i * 2.399;
+      ctx.globalAlpha = Math.max(0, Math.sin(phase)) * 0.36 * shine;
+      ctx.fillStyle = x > 1220 && x < 1415 ? '#ffd087' : '#82ced4';
+      ctx.fillRect(Math.round(x + Math.sin(phase) * 9), y, 5 + (i % 6) * 3, 1.1);
+    }
+    ctx.restore();
   }
 
-  function drawLights(ctx, time) {
+  function drawReeds(ctx, camera, time) {
+    const tick = Math.floor(time * 24);
+    for (const reed of reeds) {
+      const { x, y, w, h, phase, buffer, mask } = reed;
+      if (tick !== reedTick) {
+        buffer.clearRect(0, 0, w, h);
+        const gust = Math.sin(time * 1.9 + phase) + Math.sin(time * 3.1 + phase * 1.7) * 0.36;
+        for (let row = 0; row < h; row += 7) {
+          const bend = (1 - row / h) ** 1.7;
+          const height = Math.min(7, h - row);
+          const offset = bend * gust * 5.5;
+          buffer.drawImage(art, x, y + row, w, height, offset, row, w, height);
+        }
+        buffer.globalCompositeOperation = 'destination-in';
+        buffer.drawImage(mask, 0, 0);
+        buffer.globalCompositeOperation = 'source-over';
+      }
+      if (x + w >= camera && x <= camera + viewportWidth) ctx.drawImage(buffer.canvas, x, y);
+    }
+    reedTick = tick;
+  }
+
+  function drawLight(ctx, time) {
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = 0.40;
-    ctx.drawImage(coolLight, 855, 4, 699, 256);
-    ctx.globalAlpha = 0.50;
-    ctx.drawImage(mist, 933 + Math.sin(time * 0.13) * 39, 328, 494, 154);
-    ctx.globalAlpha = 0.57;
-    ctx.drawImage(mist, 368 + Math.sin(time * 0.17) * 42, 104, 572, 144);
-    lanterns.forEach(({ x, y, ground, radius }, i) => {
-      const flicker = 0.83 + Math.sin(time * 3.7 + i * 1.8) * 0.085 + Math.sin(time * 10.2 + i * 4) * 0.05;
-      ctx.globalAlpha = flicker * 0.64;
-      ctx.drawImage(lightCone, x - radius * 0.55, y - 6, radius * 1.1, ground - y + 16);
-      ctx.globalAlpha = flicker;
-      ctx.drawImage(flame, x - radius * 0.58, y - radius * 0.56, radius * 1.16, radius * 1.12);
-      const offset = x > 1000 ? radius * 0.27 : 0;
-      ctx.drawImage(lamplight, x - radius - offset, ground - radius * 0.34, radius * 2, radius * 0.64);
-    });
-    ctx.restore();
-  }
-
-  function drawBirds(ctx, time) {
-    ctx.save();
-    ctx.strokeStyle = '#8a99c9';
-    ctx.lineCap = 'round';
-    for (let i = 0; i < 5; i++) {
-      const t = (time * 79 + 390 - i * 31 + width * 2) % (width + 130) - 65;
-      const y = 123 + i * 8 + Math.sin(time * 0.62 + i * 0.48) * 15;
-      const wing = Math.sin(time * 9.1 - i * 1.4) * 4;
-      ctx.globalAlpha = 0.56 + i * 0.035;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(t - 6, y - wing);
-      ctx.quadraticCurveTo(t - 3, y - 2, t, y + 1);
-      ctx.quadraticCurveTo(t + 3, y - 2, t + 7, y - wing);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawButterflies(ctx, time) {
-    ctx.save();
-    for (let i = 0; i < 4; i++) {
-      const side = i < 2 ? 407 : 1024;
-      const x = side + Math.sin(time * (0.68 + i * 0.16) + i * 1.7) * (27 + i * 3);
-      const y = 503 + i * 13 + Math.cos(time * 1.26 + i * 1.8) * (15 + i);
-      const wing = 1.2 + Math.abs(Math.sin(time * 16 + i * 3)) * 3.3;
-      ctx.globalAlpha = 0.83;
-      ctx.fillStyle = i % 2 ? '#f7c5a0' : '#f5c9e5';
-      ctx.fillRect(Math.round(x - wing), Math.round(y - 2), wing, 2);
-      ctx.fillRect(Math.round(x + 1), Math.round(y - 2), wing, 2);
-      ctx.fillStyle = '#ab73a6';
-      ctx.fillRect(Math.round(x - wing * 0.5), Math.round(y), wing * 0.5, 2);
-      ctx.fillRect(Math.round(x + 1), Math.round(y), wing * 0.5, 2);
-      ctx.fillStyle = '#502e56';
-      ctx.fillRect(Math.round(x), Math.round(y - 1), 1, 3);
-    }
+    ctx.globalAlpha = 0.78 + Math.sin(time * 0.72) * 0.11;
+    ellipseGlow(ctx, 255, 91, 356, 152, '#ffe4a838');
+    ellipseGlow(ctx, 445, 617, 317, 45, '#ffe0a636');
+    ellipseGlow(ctx, 2197, 375, 134, 99, '#ffd2775a');
+    ellipseGlow(ctx, 2198, 618, 171, 27, '#ffd47e3c');
     ctx.restore();
   }
 
   return {
-    background(ctx, time, animate) {
-      if (frame) {
-        ctx.drawImage(frame, 0, 0);
-        if (animate) drawSurface(ctx, time);
-      }
-      drawBirds(ctx, time);
-      drawLights(ctx, time);
-      drawButterflies(ctx, time);
+    background(ctx, camera, time, animate) {
+      if (!frame) return;
+      const rendered = terrain?.(ctx, camera, time);
+      if (!rendered) ctx.drawImage(frame, camera, cameraTop, viewportWidth, viewportHeight,
+        0, 0, viewportWidth, viewportHeight);
       ctx.save();
-      for (const p of fireflies) {
-        const x = p.x + Math.sin(time * 0.84 + p.phase) * 21;
-        const y = p.y + Math.cos(time * 0.91 + p.phase) * 12;
-        ctx.globalAlpha = Math.max(0.05, Math.sin(time * 1.5 + p.phase)) * 0.72;
-        ctx.fillStyle = '#ffdcac';
-        ctx.fillRect(Math.round(x), Math.round(y), 2, 2);
+      ctx.translate(-camera, -cameraTop);
+      if (animate) {
+        if (!rendered) drawWater(ctx, camera, time);
+        drawReeds(ctx, camera, time);
       }
+      drawLight(ctx, time);
       ctx.restore();
     },
 
-    foreground(ctx, time, large) {
+    foreground(ctx, camera, time) {
       ctx.save();
-      for (const p of bursts) {
-        const age = (time + p.phase) % p.duration;
-        const x = p.x + age * p.speed + Math.sin(age * 1.7 + p.phase) * 26;
-        const y = 58 + age * (38 + 3 * Math.cos(p.phase)) + 17 * Math.sin(age * 1.28 + p.phase);
-        ctx.globalAlpha = smooth(0, 1.5, age) * (1 - smooth(p.duration - 2, p.duration, age)) * 0.78;
-        ctx.fillStyle = p.tone;
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(time * 0.67 + p.phase);
-        ctx.scale(1, 0.32 + Math.abs(Math.cos(age * 1.1 + p.phase)) * 0.68);
-        ctx.fillRect(-p.size * 0.82, -p.size * 0.35, p.size * 1.64, p.size * 0.70);
-        ctx.fillRect(-p.size * 0.44, -p.size * 0.59, p.size * 0.88, p.size * 1.18);
-        ctx.restore();
+      ctx.translate(-camera, -cameraTop);
+      if (nearReeds.complete && nearReeds.naturalWidth) {
+        const pan = camera + viewportWidth / 2 - width / 2;
+        for (const [i, [anchor, y, scale]] of [[130, 881, .74], [1100, 880, .56], [2365, 886, .81]].entries()) {
+          ctx.save();
+          ctx.translate(anchor - pan * .23, y);
+          ctx.scale(scale, scale);
+          ctx.transform(1, 0, Math.sin(time * 1.22 + i * 1.74) * .043, 1, 0, 0);
+          ctx.drawImage(nearReeds, -240, -240, 480, 240);
+          ctx.restore();
+        }
       }
-      if (large) {
-        ctx.globalAlpha = 0.14;
-        ctx.drawImage(mist, 82 + Math.sin(time * 0.13) * 33, 868, 596, 156);
+      for (const p of petals) {
+        const age = (time + p.phase) % p.duration;
+        const x = p.x + age * 19 + Math.sin(age * 1.36 + p.phase) * 27;
+        if (x < camera || x > camera + viewportWidth) continue;
+        const y = 45 + age * 41 + Math.sin(age * 0.92 + p.phase) * 18;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, age * 0.81, (p.duration - age) * 0.61) * 0.78;
+        ctx.translate(x, y);
+        ctx.rotate(age * (0.45 + Math.sin(p.phase) * 0.25));
+        ctx.scale(1, 0.40 + Math.abs(Math.sin(age * 1.41 + p.phase)) * 0.60);
+        ctx.fillStyle = p.tone;
+        ctx.fillRect(-p.size, -p.size * 0.46, p.size * 2, p.size * 0.92);
+        ctx.restore();
       }
       ctx.restore();
     },

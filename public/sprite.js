@@ -1,87 +1,61 @@
-// The hair and face take ten rows of the twenty-one-row figure.
-const figure = [
-  '       qqqq       ',
-  '      qhhhlq      ',
-  '     qhhhlmgq     ',
-  '    qhhlhhggq     ',
-  '    qhlhhaaaqq    ',
-  '   qhhhaaaaaahq   ',
-  '   qhhasssassaqq  ',
-  '   qhaasfsfsahhq  ',
-  '    qhaattahhqq   ',
-  '     qqsshqqq     ',
-  '     qlssglqq     ',
-  '    qlrcgcrlqq    ',
-  '   qlcrcgmcrcqq   ',
-  '   qlrrcccrrrqq   ',
-  '   qsscmgcrrssq   ',
-  '   qqccggrrcqqq   ',
-  '    qcrrrrrcrq    ',
-  '    qlcrcrclrq    ',
-  '   qlccrrrcrrqq   ',
-  '    qqqqrqqqqq    ',
-  '     qzdqdzq      ',
-];
-const outfits = {
-  teal: ['#317b87', '#40979c', '#8bd4ca'],
-  tealMoon: ['#2b6874', '#429a9b', '#e9c181'],
-  violet: ['#5a4088', '#8962a5', '#c7b9e2'],
-  rose: ['#803e62', '#b56382', '#efb3c4'],
-  amber: ['#83523f', '#b37d4f', '#f7c67c'],
+import { travelerUrl, runUrl } from './assets.js';
+
+const filters = {
+  teal: 'none',
+  violet: 'hue-rotate(26deg) saturate(.9)',
+  rose: 'hue-rotate(301deg) saturate(.83)',
+  amber: 'sepia(.6) saturate(.72)',
 };
 
-function makeTexture([main, fold, trim]) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 19;
-  canvas.height = figure.length;
-  const paint = canvas.getContext('2d');
-  const ink = {
-    q: '#17213b', h: '#24304d', l: trim, m: '#efc285',
-    g: '#d08d57', a: '#b98179', s: '#f4c297', f: '#201f37', t: '#d68683',
-    c: fold, r: main, d: '#332b43', z: '#604353',
-  };
-  figure.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      if (row[x] === ' ') continue;
-      paint.fillStyle = ink[row[x]];
-      paint.fillRect(x, y, 1, 1);
+function loadPoses(url, frames) {
+  const poses = new Map();
+  const art = new Image();
+  art.src = url;
+  art.decode().then(() => {
+    for (const [name, filter] of Object.entries({ ...filters, shadow: 'brightness(0)' })) {
+      const sheet = document.createElement('canvas');
+      sheet.width = art.width;
+      sheet.height = art.height;
+      const context = sheet.getContext('2d');
+      context.filter = filter;
+      context.drawImage(art, 0, 0);
+      poses.set(name, sheet);
     }
-  });
-  return canvas;
+  }).catch(() => {});
+  return { poses, frames };
 }
 
-const textures = Object.fromEntries(Object.keys(outfits).map((color) => [color, makeTexture(outfits[color])]));
+const idle = loadPoses(travelerUrl, 1);
+const run = loadPoses(runUrl, 6);
 
-export function actorSize(y, isPortrait) {
-  return isPortrait ? 4.9 : Math.max(3.2, Math.min(4.2, 3.2 + (y - 605) / 235));
+export function actorHeight(actor) {
+  return actor.color === 'amber' ? 120 : 138;
 }
 
-export function drawSprite(ctx, actor, x, y, size, time) {
-  const step = actor.moving ? Math.floor(time * 8) % 4 : 0;
-  const lift = step % 2 ? Math.round(size * 0.45) : 0;
-  const texture = textures[actor.color] ?? textures.teal;
-  const shadow = ctx.createRadialGradient(x + 4, y + 2, 0, x + 4, y + 2, 26);
-  shadow.addColorStop(0, '#070918b8');
-  shadow.addColorStop(0.52, '#0709186e');
-  shadow.addColorStop(1, 'transparent');
+export function drawSprite(ctx, actor, x, y, time) {
+  const animation = actor.moving && run.poses.size ? run : idle;
+  const tex = animation.poses.get(actor.color) ?? animation.poses.get('teal');
+  if (!tex) return;
+  const h = actorHeight(actor);
+  const cell = tex.width / animation.frames;
+  const w = cell * h / tex.height;
+  const frame = Math.floor(time * 12) % animation.frames;
+  const inhale = actor.moving ? 0 : Math.sin(time * 2.1) * 0.8;
+  const drawPose = bitmap => ctx.drawImage(bitmap, frame * cell, 0, cell, tex.height,
+    -w / 2, -h - inhale, w, h + inhale);
+
   ctx.save();
   ctx.translate(x, y);
-  ctx.transform(1, 0.06, -0.64, 0.33, 0, 0);
-  ctx.translate(-x, -y);
-  ctx.fillStyle = shadow;
-  ctx.fillRect(x - 30, y - 30, 68, 65);
-  ctx.restore();
-
-  ctx.fillStyle = '#1114248c';
+  ctx.fillStyle = '#1b263854';
   ctx.beginPath();
-  ctx.ellipse(x - 3, y + 1, 14, 3.1, -0.07, 0, Math.PI * 2);
+  ctx.ellipse(4, 2, w * .29, 5, .05, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.save();
-  ctx.translate(x, y - lift);
+  ctx.transform(actor.face * .89, 0, -.47, -.105, 1, 0);
+  ctx.globalAlpha = .24;
+  drawPose(animation.poses.get('shadow'));
+  ctx.restore();
   ctx.scale(actor.face, 1);
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(texture, Math.round(-texture.width * size * 0.5), Math.round(-texture.height * size),
-    Math.round(texture.width * size), Math.round(texture.height * size));
+  drawPose(tex);
   ctx.restore();
 }

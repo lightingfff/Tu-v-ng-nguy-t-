@@ -1,14 +1,16 @@
 import { createAtmosphere } from './atmosphere.js';
-import { actorSize, drawSprite } from './sprite.js';
-import { altar, canWalk, distance, fragments, guide, height, width } from './world.js';
+import { actorHeight, drawSprite } from './sprite.js';
+import {
+  advancePlayer, applyInput, areas, altar, cameraTop, fragments, groundAt, guide,
+  interactWithWorld, interactionFor, makePlayer, viewportHeight, viewportWidth, width,
+} from './world.js';
 
 const canvas = document.querySelector('#world');
 const ctx = canvas.getContext('2d');
 const atmosphere = createAtmosphere();
 const layout = document.querySelector('.layout');
 const viewButton = document.querySelector('#view-scene');
-const scene = document.querySelector('.scene');
-const sceneHud = scene.querySelectorAll('.location, .quest, .scene-actions');
+const hudButton = document.querySelector('#hide-hud');
 const connection = document.querySelector('#connection');
 const objective = document.querySelector('#objective');
 const progress = document.querySelector('#progress');
@@ -18,78 +20,98 @@ const notice = document.querySelector('#notice');
 const interactButton = document.querySelector('#interact');
 const interactLabel = interactButton.querySelector('span');
 const experience = document.querySelector('#experience');
+const place = document.querySelector('#place-name');
+const trailMeter = document.querySelector('#trail-meter');
+const offlineOnly = document.body.hasAttribute('data-offline-only') || location.protocol === 'file:' || location.hostname.endsWith('.github.io');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-const compact = matchMedia('(max-width: 600px)');
-const npcs = { x: guide.x, y: guide.y, name: 'Người giữ đền', color: 'amber', face: 1 };
-const portrait = { x: 1082, y: 665, color: 'tealMoon', face: -1 };
+const compact = matchMedia('(max-width: 700px)');
+const guideActor = { ...guide, name: 'Người trông quán', color: 'amber', face: 1 };
+const localPlayer = makePlayer(0, 'local');
 const actors = new Map();
 const keys = new Set();
-const moveKeys = new Map([
-  ['w', [0, -1]], ['a', [-1, 0]], ['s', [0, 1]], ['d', [1, 0]],
-  ['arrowup', [0, -1]], ['arrowleft', [-1, 0]],
-  ['arrowdown', [0, 1]], ['arrowright', [1, 0]],
-]);
+const touches = new Map();
+const moveKeys = new Map([['a', -1], ['d', 1], ['arrowleft', -1], ['arrowright', 1]]);
 const questText = {
-  start: 'Gặp Người giữ đền ở quảng trường.',
-  collect: 'Tìm ba mảnh nguyệt thạch đang phát sáng.',
-  return: 'Mang nguyệt thạch đến Ấn Nguyệt trên bậc đền.',
-  done: 'Ánh sáng đã trở lại làng Hạ Nguyệt.',
+  start: 'Tìm người trông quán ở bến sông.',
+  collect: 'Tìm ba mảnh nguyệt thạch trên đường tới đền.',
+  return: 'Mang nguyệt thạch tới Ấn Nguyệt ở đền Trăng Nổi.',
+  done: 'Ấn Nguyệt đã sáng trở lại bên bờ sông.',
 };
 let socket;
 let self;
-let stage = 'start';
-let collected = [];
+let serverState = 'start';
+let serverShards = [];
+let sceneMode = new URLSearchParams(location.search).get('view') === 'scene' || offlineOnly;
+let camera = 0;
 let noticeTimer;
+let retryTimer;
 let retryDelay = 600;
 let clickMarker;
-let viewOnly = false;
+let lastFrame = performance.now();
 
-function setView(active) {
-  viewOnly = active;
-  layout.classList.toggle('is-viewing', active);
-  viewButton.textContent = active ? 'Chơi thử' : 'Xem cảnh';
-  scene.dataset.mode = active ? 'scene' : 'game';
-  canvas.setAttribute('aria-label', active
-    ? 'Một lữ khách đứng trong làng Hạ Nguyệt, cạnh hồ và dãy đền rực ánh đèn.'
-    : 'Quảng trường làng Hạ Nguyệt. Dùng WASD hoặc phím mũi tên để đi, E để tương tác.');
-  sceneHud.forEach((element) => { element.inert = active; });
-  if (active && keys.size) {
-    keys.clear();
-    keyboardMove();
+function showNotice(message) {
+  if (!message) return;
+  clearTimeout(noticeTimer);
+  notice.textContent = message;
+  notice.hidden = false;
+  noticeTimer = setTimeout(() => { notice.hidden = true; }, 3400);
+}
+
+function player() {
+  return sceneMode ? localPlayer : actors.get(self);
+}
+
+function setMode(offline) {
+  sceneMode = offline;
+  viewButton.textContent = offline ? 'Chơi cùng' : 'Chơi một mình';
+  if (offline) {
+    clearTimeout(retryTimer);
+    if (socket) {
+      const lastSocket = socket;
+      socket = undefined;
+      if (lastSocket.readyState < WebSocket.CLOSING) lastSocket.close();
+    }
+    actors.clear();
+    self = undefined;
+    connection.textContent = 'Một người chơi';
+    connection.dataset.state = 'offline';
+  } else if (!socket) {
+    connection.textContent = 'Đang kết nối';
+    connection.dataset.state = 'connecting';
+    connect();
   }
-  if (!active && !socket) connect();
+  keys.clear();
+  touches.clear();
+  move();
 }
 
-viewButton.addEventListener('click', () => setView(!viewOnly));
-setView(new URLSearchParams(location.search).get('view') === 'scene');
-
-function send(payload) {
-  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload));
-}
-
-function updateQuest(nextStage, nextCollected) {
-  if (stage === nextStage && collected.length === nextCollected.length) return;
-  stage = nextStage;
-  collected = nextCollected;
-  objective.textContent = questText[stage];
-  progress.hidden = stage === 'start' || stage === 'done';
-  icons.textContent = fragments.map((_, index) => index < collected.length ? '◆' : '◇').join(' ');
-  count.textContent = collected.length + '/' + fragments.length + ' mảnh';
-  experience.textContent = stage === 'done' ? 'Cấp 2 · 100 KN' : 'Cấp 1 · 0 KN';
+function updateQuest(currentStage, collected) {
+  if (objective.textContent !== questText[currentStage]) objective.textContent = questText[currentStage];
+  progress.hidden = currentStage === 'start' || currentStage === 'done';
+  const total = collected.length + '/' + fragments.length + ' mảnh';
+  if (count.textContent !== total) {
+    count.textContent = total;
+    icons.textContent = fragments.map((_, index) => index < collected.length ? '◆' : '◇').join(' ');
+  }
+  const level = currentStage === 'done' ? 'Cấp 2 · 100 KN' : 'Cấp 1 · 0 KN';
+  if (experience.textContent !== level) experience.textContent = level;
 }
 
 function connect() {
-  socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/play');
+  const endpoint = new URL('./play', location.href);
+  endpoint.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const connectionSocket = new WebSocket(endpoint);
+  let entered = false;
+  socket = connectionSocket;
   socket.addEventListener('message', (event) => {
+    if (socket !== connectionSocket) return;
     const message = JSON.parse(event.data);
     if (message.type === 'welcome') {
       self = message.id;
+      entered = true;
       retryDelay = 600;
     } else if (message.type === 'notice') {
-      clearTimeout(noticeTimer);
-      notice.textContent = message.text;
-      notice.hidden = false;
-      noticeTimer = setTimeout(() => { notice.hidden = true; }, 3200);
+      showNotice(message.text);
     } else if (message.type === 'state') {
       const visible = new Set(message.actors.map(({ id }) => id));
       for (const id of actors.keys()) {
@@ -100,79 +122,111 @@ function connect() {
         if (actor) Object.assign(actor, data);
         else actors.set(data.id, { ...data, renderX: data.x, renderY: data.y });
       }
-      updateQuest(message.stage, message.collected);
+      serverState = message.stage;
+      serverShards = message.collected;
       connection.dataset.state = 'online';
       const label = message.actors.length + ' trực tuyến';
       if (connection.textContent !== label) connection.textContent = label;
-      const player = actors.get(self);
-      const canTalk = player && stage === 'start' && distance(player, guide) < 85;
-      const canFinish = player && stage === 'return' && distance(player, altar) < 85;
-      interactButton.hidden = !canTalk && !canFinish;
-      if (canTalk || canFinish) interactLabel.textContent = canTalk ? 'Nói chuyện' : 'Thắp Ấn Nguyệt';
     }
   });
   socket.addEventListener('close', () => {
-    self = undefined;
+    if (socket !== connectionSocket) return;
+    socket = undefined;
     actors.clear();
+    self = undefined;
     keys.clear();
-    clickMarker = undefined;
-    notice.hidden = true;
-    interactButton.hidden = true;
-    updateQuest('start', []);
+    touches.clear();
+    if (!entered) {
+      setMode(true);
+      showNotice('Đang chơi một mình. Máy chủ chơi cùng hiện chưa kết nối được.');
+      return;
+    }
     connection.dataset.state = 'connecting';
     connection.textContent = 'Đang kết nối lại';
-    setTimeout(connect, retryDelay);
+    retryTimer = setTimeout(connect, retryDelay);
     retryDelay = Math.min(retryDelay * 2, 8000);
   });
 }
 
-function keyboardMove() {
-  let dx = 0;
-  let dy = 0;
-  for (const key of keys) {
-    const [x, y] = moveKeys.get(key);
-    dx += x;
-    dy += y;
+function command(payload) {
+  if (sceneMode) {
+    if (payload.type === 'interact') showNotice(interactWithWorld(localPlayer));
+    else applyInput(localPlayer, payload, performance.now());
+  } else if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(payload));
   }
-  send({ type: 'move', dx: Math.sign(dx), dy: Math.sign(dy) });
+}
+
+function move() {
+  let dx = 0;
+  for (const key of keys) dx += moveKeys.get(key);
+  for (const value of touches.values()) dx += value;
+  command({ type: 'move', dx: Math.sign(dx) });
+}
+
+function act() {
+  command({ type: 'interact' });
 }
 
 window.addEventListener('keydown', (event) => {
   if (event.altKey || event.ctrlKey || event.metaKey) return;
   const key = event.key.toLowerCase();
-  if (key === 'escape' && viewOnly) {
-    setView(false);
-    viewButton.focus();
-    return;
-  }
-  if (viewOnly) return;
   if (moveKeys.has(key)) {
     event.preventDefault();
     keys.add(key);
-    keyboardMove();
-  } else if (key === 'e' && !event.repeat) send({ type: 'interact' });
+    move();
+  } else if (key === 'e' && !event.repeat) act();
 });
 window.addEventListener('keyup', (event) => {
-  if (keys.delete(event.key.toLowerCase())) keyboardMove();
+  if (keys.delete(event.key.toLowerCase())) move();
 });
 window.addEventListener('blur', () => {
-  if (!keys.size) return;
+  if (!keys.size && !touches.size) return;
   keys.clear();
-  keyboardMove();
+  touches.clear();
+  move();
 });
-setInterval(() => { if (keys.size) keyboardMove(); }, 120);
-interactButton.addEventListener('click', () => send({ type: 'interact' }));
+setInterval(() => { if (keys.size || touches.size) move(); }, 120);
+
+for (const control of document.querySelectorAll('[data-move]')) {
+  const direction = Number(control.dataset.move);
+  control.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    control.setPointerCapture(event.pointerId);
+    touches.set(event.pointerId, direction);
+    move();
+  });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    control.addEventListener(type, (event) => {
+      if (touches.delete(event.pointerId)) move();
+    });
+  }
+  control.addEventListener('click', (event) => {
+    if (event.detail !== 0) return;
+    const active = player();
+    if (active) command({ type: 'target', x: active.x + direction * 124 });
+  });
+}
 
 canvas.addEventListener('pointerdown', (event) => {
-  if (event.button !== 0 || !self || viewOnly) return;
+  if (event.button !== 0 || !player()) return;
   const bounds = canvas.getBoundingClientRect();
-  const x = (event.clientX - bounds.left) * width / bounds.width;
-  const y = (event.clientY - bounds.top) * height / bounds.height;
-  if (!canWalk(x, y)) return;
+  const x = camera + (event.clientX - bounds.left) * viewportWidth / bounds.width;
   keys.clear();
-  clickMarker = { x, y, until: performance.now() + 670 };
-  send({ type: 'target', x, y });
+  touches.clear();
+  clickMarker = { x, y: groundAt(x), until: performance.now() + 670 };
+  command({ type: 'target', x });
 });
+interactButton.addEventListener('click', act);
+viewButton.hidden = offlineOnly;
+viewButton.addEventListener('click', () => setMode(!sceneMode));
+hudButton.addEventListener('click', () => {
+  const hidden = layout.classList.toggle('clean-view');
+  hudButton.textContent = hidden ? 'Hiện giao diện' : 'Ẩn giao diện';
+  hudButton.setAttribute('aria-pressed', String(hidden));
+});
+setMode(sceneMode);
 
 function glow(x, y, radius, color) {
   const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
@@ -182,92 +236,103 @@ function glow(x, y, radius, color) {
   ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
 }
 
-function diamond(x, y, radius, color, fill) {
+function diamond(x, y, radius, color) {
   ctx.beginPath();
   ctx.moveTo(x, y - radius);
-  ctx.lineTo(x + radius * 0.63, y);
+  ctx.lineTo(x + radius * 0.57, y);
   ctx.lineTo(x, y + radius);
-  ctx.lineTo(x - radius * 0.63, y);
+  ctx.lineTo(x - radius * 0.57, y);
   ctx.closePath();
-  if (fill) {
-    ctx.fillStyle = color;
-    ctx.fill();
-  } else {
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = color;
-    ctx.stroke();
-  }
+  ctx.fillStyle = color;
+  ctx.fill();
 }
 
-function label(text, x, y, color) {
+function drawActor(actor, time) {
+  const x = Math.round(actor.renderX ?? actor.x);
+  const y = Math.round(actor.renderY ?? actor.y);
+  if (x + 100 < camera || x - 100 > camera + viewportWidth) return;
+  drawSprite(ctx, actor, x, y, time);
+  if (layout.classList.contains('clean-view') || actor.id === 'local') return;
+  if (actor.id === self) diamond(x + 4, y - actorHeight(actor) - 15, 5, '#e4fff7');
   ctx.textAlign = 'center';
   ctx.font = '600 ' + (compact.matches ? 22 : 17) + 'px system-ui';
   ctx.lineWidth = 4;
-  ctx.strokeStyle = '#111527';
-  ctx.strokeText(text, x, y);
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y);
+  ctx.strokeStyle = '#1b2437';
+  ctx.strokeText(actor.name, x, y + 23);
+  ctx.fillStyle = actor === guideActor ? '#ffeac9' : '#fcfff0';
+  ctx.fillText(actor.name, x, y + 23);
 }
 
-function drawActor(actor, time, isPortrait = false) {
-  const x = Math.round(actor.renderX ?? actor.x);
-  const y = Math.round(actor.renderY ?? actor.y);
-  const size = actorSize(y, isPortrait);
-  drawSprite(ctx, actor, x, y, size, time);
-  if (isPortrait) return;
-  if (actor.id === self) {
-    diamond(x, y - size * 23, 5, '#a3f4fa', true);
-    label('Bạn', x, y + 19, '#cafffb');
-  } else label(actor.name, x, y + 19, actor === npcs ? '#ffe2a4' : '#f1e9ff');
-}
-
-function render(now) {
-  const animate = !reducedMotion.matches;
-  const time = animate ? now / 1000 : 0;
-  ctx.clearRect(0, 0, width, height);
-  atmosphere.background(ctx, time, animate);
-
-  if (viewOnly) {
-    drawActor(portrait, time, true);
-    atmosphere.foreground(ctx, time, true);
-    requestAnimationFrame(render);
-    return;
-  }
-
+function drawWorld(stage, collected, time, now) {
   if (clickMarker && now < clickMarker.until) {
     const fade = (clickMarker.until - now) / 670;
-    ctx.globalAlpha = fade * 0.85;
-    ctx.strokeStyle = '#ddfbff';
+    ctx.globalAlpha = fade * .85;
+    ctx.strokeStyle = '#fff8d3';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(clickMarker.x, clickMarker.y, 9 + 14 * (1 - fade), 4 + 5 * (1 - fade), 0, 0, Math.PI * 2);
+    ctx.ellipse(clickMarker.x, clickMarker.y, 10 + 13 * (1 - fade), 5 + 5 * (1 - fade), 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-
   if (stage === 'start') {
-    diamond(guide.x, guide.y - 85, 8, '#ffdd9e', false);
+    const y = guide.y - actorHeight(guideActor) - 14 + Math.sin(time * 3.4) * 4;
+    glow(guide.x, y, 19, '#ffdc7566');
+    diamond(guide.x, y, 7, '#f9d569');
   } else if (stage === 'collect') {
     fragments.forEach(({ x, y }, index) => {
-      if (collected.includes(index)) return;
-      const hover = Math.sin(time / 0.43 + index) * 5;
-      glow(x, y - 14 + hover, 32, '#5df7e2a0');
-      diamond(x, y - 14 + hover, 11, '#bdfffa', true);
-      diamond(x + 1, y - 15 + hover, 7, '#449fc0', true);
+      if (collected.includes(index) || x < camera - 32 || x > camera + viewportWidth + 32) return;
+      const hover = Math.sin(time * 2.8 + index) * 5;
+      glow(x, y - 30 + hover, 37, '#b8ffe6c0');
+      diamond(x, y - 30 + hover, 13, '#edffeb');
+      diamond(x + 2, y - 32 + hover, 8, '#79dacf');
     });
   } else {
     const lit = stage === 'done';
-    glow(altar.x, altar.y - 76, lit ? 97 : 54, lit ? '#ffe1a88c' : '#a5faf980');
-    diamond(altar.x, altar.y - 73, 13, lit ? '#ffebae' : '#c1fff5', lit);
+    const y = altar.y - 217;
+    glow(altar.x, y, lit ? 103 : 49, lit ? '#ffe19ac0' : '#dcffd390');
+    if (!lit) diamond(altar.x, y, 10, '#effeca');
   }
+}
+
+function render(now) {
+  const dt = Math.min((now - lastFrame) / 1000, 0.05);
+  const animate = !reducedMotion.matches;
+  const time = animate ? now / 1000 : 0;
+  lastFrame = now;
+  if (sceneMode) showNotice(advancePlayer(localPlayer, dt, now));
 
   for (const actor of actors.values()) {
-    actor.renderX += (actor.x - actor.renderX) * 0.24;
-    actor.renderY += (actor.y - actor.renderY) * 0.24;
+    const smoothing = 1 - Math.exp(-dt * 15);
+    actor.renderX += (actor.x - actor.renderX) * smoothing;
+    actor.renderY += (actor.y - actor.renderY) * smoothing;
   }
-  const ordered = [npcs, ...actors.values()].sort((a, b) => (a.renderY ?? a.y) - (b.renderY ?? b.y));
-  for (const actor of ordered) drawActor(actor, time);
-  atmosphere.foreground(ctx, time, false);
+  const current = player();
+  const stage = sceneMode ? localPlayer.stage : serverState;
+  const collected = sceneMode ? localPlayer.collected : serverShards;
+  if (current) {
+    const position = current.renderX ?? current.x;
+    const follow = Math.max(0, Math.min(width - viewportWidth, position - viewportWidth * 0.47));
+    camera += (follow - camera) * (animate ? 1 - Math.exp(-dt * 7) : 1);
+    const region = areas.findLast(({ start }) => position >= start);
+    if (region && place.textContent !== region.name) place.textContent = region.name;
+    trailMeter.value = position / width;
+  }
+  updateQuest(stage, collected);
+  const action = current && interactionFor({ ...current, stage });
+  interactButton.hidden = !action;
+  if (action && interactLabel.textContent !== action) interactLabel.textContent = action;
+
+  ctx.clearRect(0, 0, viewportWidth, viewportHeight);
+  const origin = Math.round(camera);
+  atmosphere.background(ctx, origin, time, animate);
+  ctx.save();
+  ctx.translate(-origin, -cameraTop);
+  if (!layout.classList.contains('clean-view')) drawWorld(stage, collected, time, now);
+  const visible = sceneMode ? [guideActor, localPlayer] : [guideActor, ...actors.values()];
+  visible.sort((a, b) => (a.renderY ?? a.y) - (b.renderY ?? b.y));
+  for (const actor of visible) drawActor(actor, time);
+  ctx.restore();
+  atmosphere.foreground(ctx, origin, time);
   requestAnimationFrame(render);
 }
 

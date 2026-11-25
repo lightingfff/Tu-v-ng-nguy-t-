@@ -3,45 +3,50 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0c1020">
+  <meta name="theme-color" content="#111421">
   <title>Tinh Vực · Vọng Nguyệt</title>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="preload" as="image" href="/assets/ha-nguyet.webp">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="preload" as="image" href="./assets/song-nguyet.webp">
 </head>
 <body>
   <main class="layout">
     <header class="masthead">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">✦</span>
-        <div><h1>Tinh Vực <span>·</span> Vọng Nguyệt</h1><p>Biên niên sử Nguyệt Hồ</p></div>
+        <div><h1>Tinh Vực <span>·</span> Vọng Nguyệt</h1><p>Chương I · Sông Nguyệt</p></div>
       </div>
       <div class="header-actions">
         <div id="connection" class="presence" data-state="connecting" role="status">Đang kết nối</div>
-        <button id="view-scene" class="view-button" type="button" aria-controls="world">Xem cảnh</button>
+        <button id="view-scene" class="toolbar" type="button">Chơi một mình</button>
+        <button id="hide-hud" class="toolbar" type="button" aria-pressed="false">Ẩn giao diện</button>
       </div>
     </header>
-    <section class="scene" aria-label="Làng Hạ Nguyệt">
-      <canvas id="world" width="1536" height="1024" aria-label="Quảng trường làng Hạ Nguyệt. Dùng WASD hoặc phím mũi tên để đi, E để tương tác."></canvas>
-      <div class="location"><span>NGUYỆT HỒ</span><h2>Làng Hạ Nguyệt</h2></div>
+    <section class="scene" aria-label="Bờ Sông Nguyệt">
+      <canvas id="world" width="1360" height="765" aria-label="Đi theo bờ sông bằng phím A, D, phím mũi tên trái phải hoặc chạm vào đường. Bấm E để tương tác."></canvas>
+      <div class="scene-heading"><span>SÔNG NGUYỆT</span><h2 id="place-name">Xóm Bến Sương</h2></div>
       <aside class="quest" aria-label="Nhiệm vụ" aria-live="polite">
-        <div class="quest-title"><span aria-hidden="true">✧</span><h3>Ánh sáng trở về</h3></div>
-        <p id="objective">Gặp Người giữ đền ở quảng trường.</p>
+        <div class="quest-title"><span aria-hidden="true">✧</span><h3>Tìm ánh trăng</h3></div>
+        <p id="objective">Tìm người trông quán ở bến sông.</p>
         <div id="progress" class="progress" hidden>
           <span id="shard-icons" class="shards" aria-hidden="true">◇ ◇ ◇</span>
           <span id="count"></span>
         </div>
       </aside>
       <div class="scene-actions">
-        <p id="notice" class="notice" aria-live="polite" hidden></p>
+        <p id="notice" class="notice" role="status" hidden></p>
         <button id="interact" class="interact" type="button" hidden><kbd>E</kbd> <span></span></button>
+      </div>
+      <div class="directions" aria-label="Di chuyển">
+        <button type="button" data-move="-1" aria-label="Đi sang trái">‹</button>
+        <button type="button" data-move="1" aria-label="Đi sang phải">›</button>
       </div>
     </section>
     <footer class="footer">
-      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> hoặc chạm để đi</span>
-      <span><kbd>E</kbd> Tương tác</span>
+      <span class="keys"><kbd>A</kbd><kbd>D</kbd> hoặc chạm để đi <kbd>E</kbd> Tương tác</span>
+      <meter id="trail-meter" min="0" max="1" value="0" aria-label="Vị trí dọc bờ sông"></meter>
       <span id="experience">Cấp 1 · 0 KN</span>
     </footer>
   </main>
-  <script type="module" src="/game.js"></script>
+  <script type="module" src="./game.js"></script>
 </body>
 </html>

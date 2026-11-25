@@ -2,35 +2,29 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ds6cike61wbsv"
-path="res://.godot/imported/ha-nguyet-water.webp-2fc550c86b17b20a7931a17ee426cfae.ctex"
+uid="uid://bg6guub73ypp0"
+path="res://.godot/imported/song-nguyet.webp-9cfcaa2bbcddac0efee8cfe0e0d28ea1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ha-nguyet-water.webp"
-dest_files=["res://.godot/imported/ha-nguyet-water.webp-2fc550c86b17b20a7931a17ee426cfae.ctex"]
+source_file="res://assets/song-nguyet.webp"
+dest_files=["res://.godot/imported/song-nguyet.webp-9cfcaa2bbcddac0efee8cfe0e0d28ea1.ctex"]
 
 [params]
 
 compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
-compress/uastc_level=0
-compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
-process/channel_remap/red=0
-process/channel_remap/green=1
-process/channel_remap/blue=2
-process/channel_remap/alpha=3
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/normal_map_invert_y=false

@@ -1,9 +1,20 @@
 {
   "name": "tinh-vuc-vong-nguyet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
-  "scripts": { "start": "node server.mjs", "check": "node --check server.mjs && node --check public/game.js && node --check public/world.js && node --check public/atmosphere.js && node --check public/sprite.js" },
-  "dependencies": { "ws": "^8.18.3" }
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check public/game.js && node --check public/world.js && node --check public/atmosphere.js && node --check public/sprite.js && node --check public/terrain.js && node --check scripts/build-offline.mjs",
+    "build:offline": "node scripts/build-offline.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
 }
