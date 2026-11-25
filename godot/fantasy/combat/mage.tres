@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AdventurerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://fantasy/combat/adventurer_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://fantasy/assets/mage.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+title = "Pháp sư"
+portrait = ExtResource("2")
+tint = Color(0.49, 0.91, 0.92, 1)
+damage = 28
+armor_damage = 12
+projectile_speed = 14.0
+active_time = 0.46
+windup = 0.14

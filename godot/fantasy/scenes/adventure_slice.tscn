@@ -1,0 +1,57 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://fantasy/scenes/slice.gd" id="1"]
+[ext_resource type="PackedScene" path="res://fantasy/scenes/guild.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://fantasy/scenes/gate.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://fantasy/scenes/forest.tscn" id="4"]
+[ext_resource type="Script" path="res://fantasy/combat/party_controller.gd" id="5"]
+[ext_resource type="Script" path="res://fantasy/scenes/slice_hud.gd" id="6"]
+
+[sub_resource type="Environment" id="world"]
+background_mode = 1
+background_color = Color(0.20, 0.28, 0.35, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.63, 0.73, 0.91, 1)
+ambient_light_energy = 0.58
+reflected_light_source = 2
+fog_enabled = true
+fog_light_color = Color(0.23, 0.32, 0.40, 1)
+fog_light_energy = 0.68
+fog_density = 0.004
+
+[node name="AdventureSlice" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Guild" parent="." instance=ExtResource("2")]
+position = Vector3(-20, 0, 0)
+
+[node name="Gate" parent="." instance=ExtResource("3")]
+
+[node name="Forest" parent="." instance=ExtResource("4")]
+position = Vector3(21.9, 0, 0)
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("world")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-48, -124, 0)
+light_color = Color(1, 0.86, 0.70, 1)
+light_energy = 0.87
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 32.0
+shadow_normal_bias = 0.40
+shadow_bias = 0.06
+
+[node name="Camera" type="Camera3D" parent="."]
+projection = 1
+size = 11.7
+near = 0.1
+far = 75.0
+current = true
+
+[node name="Party" type="Node3D" parent="."]
+script = ExtResource("5")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("6")

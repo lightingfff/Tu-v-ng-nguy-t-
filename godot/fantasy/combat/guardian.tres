@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AdventurerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://fantasy/combat/adventurer_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://fantasy/assets/guard.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+title = "Hộ vệ"
+portrait = ExtResource("2")
+tint = Color(1, 0.73, 0.44, 1)
+damage = 17
+armor_damage = 75
+windup = 0.19
+active_time = 0.18

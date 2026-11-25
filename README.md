@@ -1,5 +1,9 @@
 # Tinh Vực · Vọng Nguyệt
 
+**Lát cắt Fantasy** là cảnh mặc định trong mã nguồn hiện tại. Mở Godot 4.3 và bấm F5 để nhận hợp đồng ở Hội quán La Bàn Gãy, qua cổng Thành Vách Gió và đánh Thạch Vệ tại Rừng Lam Diệp. [Hướng dẫn Phase 3 và ảnh A/B](docs/phase-3.md)
+
+## Bờ Sông Nguyệt 0.3
+
 **Bờ Sông Nguyệt 0.3** là chương phiêu lưu HD-2D trong Godot. Lữ khách dùng sprite anime 2D và bước qua địa hình 3D ở góc máy 3/4. Từ Xóm Bến Sương, bạn có thể rẽ xuống Bến Lau, sang sông bằng Cầu Gió, tìm lên Đồi Thông và đi qua cổng Rừng Lồng Đèn để tới Miếu Trăng Nổi.
 
 ![Lữ khách bước trên Cầu Gió có lan can, bóng đổ và mặt nước 3D bên dưới](docs/song-nguyet-3d.webp)
@@ -13,7 +17,7 @@ Tải APK cho Android hoặc bản Godot đóng gói cho Windows 64-bit. Trên W
 
 ## Xem và chỉnh map trong Godot
 
-Mở [godot/project.godot](godot/project.godot) bằng Godot 4.3 trở lên và bấm **F5**. [Cảnh chơi](godot/world/song_nguyet_3d.tscn) chứa camera, môi trường, nguồn nắng và nhân vật. [Cảnh thung lũng](godot/world/valley.tscn) chứa hai bờ, lòng sông và vị trí của từng model. Khu vực có thể đi rộng khoảng **110 × 63 m**.
+Mở [godot/project.godot](godot/project.godot) bằng Godot 4.3, chọn [cảnh Sông Nguyệt](godot/world/song_nguyet_3d.tscn) rồi bấm **F6**. Cảnh này chứa camera, môi trường, nguồn nắng và nhân vật. [Cảnh thung lũng](godot/world/valley.tscn) chứa hai bờ, lòng sông và vị trí của từng model. Khu vực có thể đi rộng khoảng **110 × 63 m**.
 
 - [Models](godot/world/models) có 13 tệp glTF riêng cho nhà trà, miếu, cầu, cổng, bến, thuyền, đèn, hai loài cây, đá, thùng hàng, hoa và hàng rào. Lưới địa hình và núi là hai tài nguyên mesh riêng.
 - [Textures](godot/world/textures) chứa texture theo bề mặt. Model có UV và các khe vật liệu cho gỗ, ngói, đá, đồng, tường đất và tán lá. Bạn có thể nhập từng glTF vào Blender hoặc đặt từng model trong Godot.

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AdventurerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://fantasy/combat/adventurer_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://fantasy/assets/golem.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+title = "Thạch Vệ"
+portrait = ExtResource("2")
+tint = Color(0.91, 0.57, 0.4, 1)
+height = 2.83
+armor = 70
+health = 82
+speed = 2.32
+damage = 16
+windup = 0.48
+active_time = 0.12
+recovery = 0.54
+reach = 2.16

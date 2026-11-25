@@ -1,0 +1,36 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://fantasy/scenes/stage_builder.gd" id="1"]
+[ext_resource type="Script" path="res://fantasy/lighting/light_rig.gd" id="2"]
+
+[node name="Guild" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Spawn" type="Marker3D" parent="."]
+position = Vector3(-4.6, 0.04, 3.1)
+
+[node name="Contract" type="Marker3D" parent="."]
+position = Vector3(-1.75, 0.0, -2.88)
+
+[node name="LightRig" type="Node3D" parent="."]
+script = ExtResource("2")
+ray_angle = 44.0
+width = 2.65
+length = 8.1
+ray_intensity = 0.28
+
+[node name="Emitters" type="Node3D" parent="LightRig"]
+
+[node name="WestLamp" type="Marker3D" parent="LightRig/Emitters"]
+position = Vector3(-7.35, 2.65, -5.81)
+
+[node name="CentralLamp" type="Marker3D" parent="LightRig/Emitters"]
+position = Vector3(2.6, 2.65, -5.81)
+
+[node name="EastLamp" type="Marker3D" parent="LightRig/Emitters"]
+position = Vector3(8.9, 2.65, -5.81)
+
+[node name="Apertures" type="Node3D" parent="LightRig"]
+
+[node name="TallWindow" type="Marker3D" parent="LightRig/Apertures"]
+position = Vector3(-3.99, 4.32, -6.31)
