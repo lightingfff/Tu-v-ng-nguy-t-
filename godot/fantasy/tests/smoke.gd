@@ -42,11 +42,26 @@ func _move_to(axis: int, goal: float, max_steps: int = 540) -> void:
 	await _ticks(4)
 	_check(absf(world.party.active.global_position[axis] - goal) < 0.38, "Walkway reachable at %.1f. Actual position: %s" % [goal, world.party.active.global_position])
 
-func _run() -> void:
+func _load_slice() -> void:
+	if is_instance_valid(world):
+		world.queue_free()
+		await process_frame
 	world = load("res://fantasy/scenes/adventure_slice.tscn").instantiate()
 	root.add_child(world)
 	current_scene = world
 	await _ticks(10)
+
+func _walk_to_forest() -> void:
+	await _move_to(0, -21.9)
+	await _move_to(2, -1.6)
+	await _press(KEY_E)
+	_check(world.quest == world.Quest.DEPART, "Contract accepted from the board")
+	await _move_to(2, 2.2)
+	await _move_to(0, 16.9)
+	_check(world.quest == world.Quest.HUNT, "Walked through the unlocked gate to the forest")
+
+func _run() -> void:
+	await _load_slice()
 	_check(world.party.members.size() == 3, "Party has three members")
 	var actors: Array[CombatActor] = world.party.members
 	for actor in actors:
@@ -68,13 +83,7 @@ func _run() -> void:
 
 	await _press(KEY_E)
 	_check(world.quest == world.Quest.OFFERED, "Contract requires proximity")
-	await _move_to(0, -21.9)
-	await _move_to(2, -1.6)
-	await _press(KEY_E)
-	_check(world.quest == world.Quest.DEPART, "Contract accepted from the board")
-	await _move_to(2, 2.2)
-	await _move_to(0, 16.9)
-	_check(world.quest == world.Quest.HUNT, "Walked through the unlocked gate to the forest")
+	await _walk_to_forest()
 	await _press(KEY_E)
 	_check(world.quest != world.Quest.COMPLETE, "Chest stays locked while the enemy lives")
 
@@ -121,6 +130,31 @@ func _run() -> void:
 	await _ticks(5)
 	await _press(KEY_E)
 	_check(world.quest == world.Quest.COMPLETE, "Side-route chest opens and completes the contract")
+	await _run_live_route()
 	if not failed:
-		print("PASS · Glow and Sunray A/B, zoom, gate, attack, dodge, hit dedup, assist, mage, chest")
+		print("PASS · Lighting A/B, combat timing and complete gameplay route with live AI")
 	quit(1 if failed else 0)
+
+func _run_live_route() -> void:
+	# Regress the narrow doorway failure using input throughout, including follower travel.
+	await _load_slice()
+	await _walk_to_forest()
+	await _move_to(0, 23.1)
+	await _press(KEY_F)
+	await _ticks(88)
+	_check(world.enemy.armor == 0, "Guardian followed through the gate and broke armor")
+	await _press(KEY_2)
+	_check(world.party.index == 1, "Mage takes control against live AI")
+	for i in 12:
+		if world.enemy.state == CombatActor.State.DOWN:
+			break
+		if world.enemy.state == CombatActor.State.WINDUP:
+			await _press(KEY_SPACE)
+			await _ticks(16)
+		await _press(KEY_J)
+		await _ticks(52)
+	_check(world.quest == world.Quest.LOOT, "Defeated the golem with live AI")
+	await _move_to(2, 6.8)
+	await _move_to(0, 36.0)
+	await _press(KEY_E)
+	_check(world.quest == world.Quest.COMPLETE, "Walked to the side-route chest")

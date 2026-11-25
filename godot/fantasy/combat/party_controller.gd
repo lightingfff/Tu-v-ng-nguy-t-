@@ -13,9 +13,14 @@ var assist: CombatActor
 var _assist_target: CombatActor
 var _assist_timer := 0.0
 var _assist_started := false
+var _catchup_shape := CapsuleShape3D.new()
 var active: CombatActor:
 	get:
 		return members[index]
+
+func _ready() -> void:
+	_catchup_shape.radius = 0.34
+	_catchup_shape.height = 1.30
 
 func add_member(actor: CombatActor) -> void:
 	var role := members.size()
@@ -66,6 +71,8 @@ func request_assist(target: CombatActor) -> bool:
 	if helper.state != CombatActor.State.READY or active.global_position.distance_to(target.global_position) > 7.0:
 		feedback.emit("Tiến gần quái để gọi hỗ trợ.")
 		return false
+	if helper.global_position.distance_to(active.global_position) > 4.7 and not _catch_up(helper):
+		return false
 	assist = helper
 	_assist_target = target
 	_assist_timer = 1.7
@@ -82,12 +89,35 @@ func update_party(delta: float, fighting: bool) -> void:
 		var actor := members[i]
 		if i == index or actor == assist or actor.state == CombatActor.State.DOWN:
 			continue
+		if actor.global_position.distance_to(active.global_position) > 8.5:
+			_catch_up(actor)
 		var sign_z := -1.0 if i % 2 == 0 else 1.0
 		var retreat := 2.6 if fighting else 1.65
 		var offset := -active.facing * retreat + Vector3(0, 0, sign_z * 0.9)
 		var toward := active.global_position + offset - actor.global_position
 		toward.y = 0
 		actor.steering = toward.limit_length() if toward.length_squared() > 0.16 else Vector3.ZERO
+
+func _catch_up(actor: CombatActor) -> bool:
+	var side := Vector3(-active.facing.z, 0.0, active.facing.x)
+	var world := get_world_3d().direct_space_state
+	for offset in [-active.facing * 1.28 + side * .65, -active.facing * 1.28 - side * .65, side * 1.12]:
+		var p: Vector3 = active.global_position + offset
+		var floor_ray := PhysicsRayQueryParameters3D.create(p + Vector3.UP * .8, p - Vector3.UP * .6, 1)
+		var floor_hit := world.intersect_ray(floor_ray)
+		if floor_hit.is_empty() or floor_hit.normal.dot(Vector3.UP) < .75:
+			continue
+		var check := PhysicsShapeQueryParameters3D.new()
+		check.shape = _catchup_shape
+		check.transform.origin = floor_hit.position + Vector3.UP * .72
+		check.collision_mask = 1
+		if not world.intersect_shape(check, 1).is_empty():
+			continue
+		actor.global_position = floor_hit.position + Vector3.UP * .03
+		actor.velocity = Vector3.ZERO
+		actor.steering = Vector3.ZERO
+		return true
+	return false
 
 func _update_assist(delta: float) -> void:
 	_assist_timer -= delta

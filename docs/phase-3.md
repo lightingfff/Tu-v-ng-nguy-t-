@@ -27,6 +27,6 @@ godot --headless --editor --path godot --import --quit
 godot --path godot --disable-render-loop --fixed-fps 60 --script res://fantasy/tests/smoke.gd
 ```
 
-Lệnh thứ hai cần một môi trường có màn hình. Smoke test chạy input hợp đồng, cổng và các nút ánh sáng qua Godot, sau đó đặt các diễn viên trong khu đánh để kiểm tra từng tình huống combat có thể lặp lại. Nó xác minh chống trúng lặp, từ chối đổi vai khi lấy đà, khung né, hồi chiêu hỗ trợ, phá giáp, đạn phép và khóa rương theo tiến độ.
+Lệnh thứ hai cần một môi trường có màn hình. Smoke test chạy input hợp đồng, cổng và các nút ánh sáng qua Godot, sau đó đặt các diễn viên trong khu đánh để kiểm tra từng tình huống combat có thể lặp lại. Một lượt thứ hai đi hết hợp đồng bằng input với AI của quái hoạt động, bao gồm kiểm tra đồng đội qua cửa hội quán. Bài test xác minh chống trúng lặp, từ chối đổi vai khi lấy đà, khung né, hồi chiêu hỗ trợ, phá giáp, đạn phép và khóa rương theo tiến độ.
 
 Vòng review đầu phát hiện hai vách chồng lên khe cửa kính và tia rừng quá mờ. Bản A/B phía trên chụp sau khi mở đúng khe cửa, đổi vị trí tia và thêm ánh sáng lên sàn. Ảnh lấy từ Godot 4.3 Compatibility trên Linux với llvmpipe ở 1120 × 630. Đã xem hình ở hai mức zoom. Hiệu năng trên GPU và điện thoại thật vẫn cần đo.

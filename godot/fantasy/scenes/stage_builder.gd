@@ -118,8 +118,8 @@ func _guild() -> void:
 	_wall(Vector3(-3.5, 5.03, -6.7), Vector3(4.1, 0.36, 0.55))
 	_wall(Vector3(-10.7, 2.05, -2.4), Vector3(0.53, 4.1, 9.1))
 	_box(Vector3(0, 0.29, 7.37), Vector3(25, 0.58, 0.38), _brick, true)
-	_box(Vector3(12.2, 1.0, -3.0), Vector3(0.6, 2.0, 8.8), _brick, true)
-	_box(Vector3(12.2, 1.0, 5.2), Vector3(0.6, 2.0, 4.3), _brick, true)
+	_box(Vector3(12.2, 1.0, -3.52), Vector3(0.6, 2.0, 7.8), _brick, true)
+	_box(Vector3(12.2, 1.0, 5.72), Vector3(0.6, 2.0, 3.25), _brick, true)
 
 	var glass := _material(Color("#8fa9bc"))
 	glass.emission_enabled = true
